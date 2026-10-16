@@ -1,7 +1,9 @@
-from pymongo import MongoClient
-import sqlite3
 import os
+import sqlite3
+
 from dotenv import load_dotenv
+from pymongo import MongoClient
+
 load_dotenv()
 def init_mongo():
     client = MongoClient(os.getenv("MONGO_URI"))
