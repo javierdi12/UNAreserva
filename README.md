@@ -1,2 +1,114 @@
 # UNAreserva
-Sistema de reservación de espacios y recursos compartidos - UNA
+
+Sistema de reservación de espacios y recursos compartidos para la comunidad universitaria.
+
+## Problema
+
+En universidades y espacios de coworking, la reserva de salas, laboratorios o equipos se realiza de forma manual (hojas de cálculo o correos), lo que genera conflictos de doble reserva y pérdida de tiempo.
+
+## Usuarios
+
+Estudiantes, profesores, administradores de bibliotecas y miembros de espacios de coworking.
+
+## Alcance del MVP
+
+- *Incluye:* Crear recursos, consultar horarios disponibles, reservar, cancelar y visualizar reservas del día.
+- *No incluye:* Pasarela de pagos, autenticación con redes sociales, facturación.
+
+## Arquitectura
+
+- *MongoDB (principal):* catálogo de recursos y reservas.
+- *Redis:* bloqueos temporales (TTL) durante el proceso de reserva.
+- *SQLite:* respaldo local de solicitudes pendientes cuando hay interrupción de red.
+
+## Tecnologías
+
+### Lenguaje y framework
+
+- *Lenguaje:* Python 3.11+
+- *Framework Web:* Flask 3.0
+- *Gestor de dependencias:* pip + requirements.txt
+
+### Bases de datos y librerías
+
+| Motor | Librería Python | Propósito |
+|-------|-----------------|-----------|
+| MongoDB | pymongo | Catálogo de recursos y reservas |
+| Redis | redis-py | Bloqueos temporales (TTL) |
+| SQLite | sqlite3 (nativo de Python) | Respaldo local de solicitudes |
+| SSL | certifi | Certificados para conectar a MongoDB Atlas |
+| Variables de entorno | python-dotenv | Cargar configuración desde .env |
+
+## Requisitos previos
+
+Antes de instalar el proyecto, asegúrate de tener:
+
+- Python 3.11 o superior instalado (python.org/downloads)
+- Git instalado (git-scm.com)
+- Cuenta en MongoDB Atlas (gratuita) con un cluster M0 creado
+- Memurai (Redis para Windows) instalado (memurai.com)
+
+## Instalación paso a paso
+
+### Paso 1: Clonar el repositorio
+
+    git clone https://github.com/javierdi12/UNAreserva.git
+    cd UNAreserva
+
+### Paso 2: Crear y activar el entorno virtual
+
+El entorno virtual aísla las dependencias del proyecto para evitar conflictos con otros proyectos de Python.
+
+    python -m venv venv
+    venv\Scripts\activate
+
+Sabrás que el entorno está activo porque el prompt de la terminal mostrará (venv) al inicio.
+
+### Paso 3: Instalar las dependencias
+
+Instala todas las librerías listadas en requirements.txt:
+
+    pip install -r requirements.txt
+
+Esto instalará: Flask, pymongo, redis, python-dotenv y certifi.
+
+### Paso 4: Configurar las variables de entorno
+
+Copia la plantilla de variables de entorno y edítala con tus credenciales:
+
+    copy .env.example .env
+
+Abre el archivo .env y configura al menos la variable MONGO_URI con la cadena de conexión de tu cluster en MongoDB Atlas:
+
+    MONGO_URI=mongodb+srv://usuario:password@cluster0.xxxxx.mongodb.net/unareserva_db?retryWrites=true&w=majority
+
+
+
+### Paso 5: Inicializar las bases de datos
+
+Este script crea las colecciones en MongoDB y la tabla en SQLite:
+
+    python scripts/init_db.py
+
+### Paso 6: Verificar la conexión a los motores
+
+Ejecuta el script principal para comprobar que los 3 motores están accesibles:
+
+    python src/main.py
+
+Deberías ver una salida como esta:
+
+    ==================================================
+       UNAreserva - Sistema de Reservacion
+    ==================================================
+    [OK] Conexion a MongoDB exitosa
+    [OK] Conexion a Redis exitosa
+    [OK] Conexion a SQLite exitosa
+    ==================================================
+
+Si algún motor falla, revisa las variables del archivo .env y las credenciales en MongoDB Atlas.
+
+
+## Licencia
+
+MIT
