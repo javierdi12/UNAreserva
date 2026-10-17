@@ -224,4 +224,5 @@ __marimo__/
 # BD
 data/*.db
 data/*.sqlite
-data/*.sqlite3
+data/*.sqlite3 
+crear_backlog.ps1
