@@ -72,3 +72,4 @@ Para pruebas y demostraciones, los datos de ejemplo se crean con `python src/ser
 - No se almacenan datos personales sensibles: solo un identificador de usuario.
 - Las credenciales de Atlas viven en `.env`, que no se sube al repositorio.
 - No hay autenticación en el MVP; queda como mejora futura.
+
