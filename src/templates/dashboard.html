@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <small class="text-danger fw-bold" style="letter-spacing: 1px;">MARTES, 20 DE OCTUBRE DE 2026</small>
+    <small class="text-danger fw-bold" style="letter-spacing: 1px;">{{ hoy_texto }}</small>
     <h2 class="mt-2 mb-1 fw-bold">Hola, Juan</h2>
     <p class="text-muted mb-4">Encontrá un espacio, reservá tu horario y aprovechá mejor tu campus.</p>
 
@@ -12,8 +12,8 @@
                 <div class="stat-icon text-danger"><i class="bi bi-calendar-check"></i></div>
                 <div>
                     <small class="text-muted d-block">Reservas activas</small>
-                    <h4 class="mb-0 fw-bold">3</h4>
-                    <small class="text-success" style="font-size: 0.7rem;">+1 esta mes</small>
+                    <h4 class="mb-0 fw-bold">{{ stats.activas }}</h4>
+                    <small class="text-muted" style="font-size: 0.7rem;">próximas y en curso</small>
                 </div>
             </div>
         </div>
@@ -22,8 +22,8 @@
                 <div class="stat-icon text-secondary"><i class="bi bi-door-closed"></i></div>
                 <div>
                     <small class="text-muted d-block">Espacios disponibles</small>
-                    <h4 class="mb-0 fw-bold">24</h4>
-                    <small class="text-muted" style="font-size: 0.7rem;">de 32 espacios</small>
+                    <h4 class="mb-0 fw-bold">{{ disponibles_total }}</h4>
+                    <small class="text-muted" style="font-size: 0.7rem;">de {{ total_espacios }} espacios ahora</small>
                 </div>
             </div>
         </div>
@@ -32,7 +32,7 @@
                 <div class="stat-icon text-dark"><i class="bi bi-clock-history"></i></div>
                 <div>
                     <small class="text-muted d-block">Horas reservadas</small>
-                    <h4 class="mb-0 fw-bold">8.5 h</h4>
+                    <h4 class="mb-0 fw-bold">{{ stats.horas_mes }} h</h4>
                     <small class="text-muted" style="font-size: 0.7rem;">este mes</small>
                 </div>
             </div>
@@ -49,7 +49,7 @@
     </div>
 
     <div class="row g-4 mb-5">
-        {% for resource in resources[:4] %}
+        {% for resource in resources %}
         <div class="col-md-3">
             <div class="space-card">
                 <div class="space-img-placeholder position-relative">
@@ -61,10 +61,18 @@
                     <h6 class="fw-bold mt-1 mb-2">{{ resource.nombre }}</h6>
                     <p class="text-muted mb-1" style="font-size: 0.8rem;"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</p>
                     <p class="text-muted mb-3" style="font-size: 0.8rem;"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</p>
-                    <a href="#" class="btn btn-una w-100 btn-sm">Reservar espacio</a>
+                    <button type="button" class="btn btn-una w-100 btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#reserveModal"
+                            data-id="{{ resource._id }}" data-nombre="{{ resource.nombre }}">
+                        Reservar espacio
+                    </button>
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="col-12 text-center text-muted py-4">No hay espacios disponibles en este momento.</div>
         {% endfor %}
     </div>
+
+    {% include "reserveModal.html" %}
 {% endblock %}

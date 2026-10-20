@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1">{% if user %}Editar usuario{% else %}Nuevo usuario{% endif %}</h3>
+        <p class="text-muted mb-0">
+            {% if user %}Modificá los datos de {{ user.nombre }}.{% else %}Registrá un estudiante o administrador.{% endif %}
+        </p>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4" style="max-width: 560px;">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Nombre completo</label>
+                <input type="text" name="nombre" class="form-control" required
+                       placeholder="Ej: Juan Delgado"
+                       value="{{ user.nombre if user else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Correo institucional</label>
+                <input type="email" name="correo" class="form-control" required
+                       placeholder="Ej: juan.delgado@una.ac.cr"
+                       value="{{ user.correo if user else '' }}"
+                       {% if user %}readonly{% endif %}>
+                {% if user %}
+                    <div class="form-text">El correo no se puede cambiar porque las reservas están asociadas a él.</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Rol</label>
+                <select name="rol" class="form-select">
+                    {% set roles = [('estudiante', 'Estudiante'), ('administrador', 'Administrador')] %}
+                    {% for valor, etiqueta in roles %}
+                        <option value="{{ valor }}" {% if user and user.rol == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-una flex-fill">
+                    {% if user %}Guardar cambios{% else %}Guardar usuario{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

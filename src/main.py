@@ -4,6 +4,9 @@ import sqlite3
 import os
 import certifi
 from dotenv import load_dotenv
+from src.crud import recursos, reservas
+from src.core.errores import ErrorValidacion, NoEncontrado
+
 
 load_dotenv()
 

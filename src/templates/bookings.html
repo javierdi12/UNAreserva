@@ -36,7 +36,18 @@
                         </td>
                         <td>
                             {% if booking.estado == 'activa' %}
-                                <a href="{{ url_for('cancel_booking', id=booking._id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de cancelar esta reserva?')">Cancelar</a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#editModal"
+                                        data-id="{{ booking._id }}"
+                                        data-nombre="{{ booking.nombre_recurso }}"
+                                        data-inicio="{{ booking.fecha_inicio[:16] }}"
+                                        data-fin="{{ booking.fecha_fin[:16] }}">
+                                    Reprogramar
+                                </button>
+                                <form method="post" action="{{ url_for('cancel_booking', id=booking._id) }}" class="d-inline"
+                                      onsubmit="return confirm('¿Estás seguro de cancelar esta reserva?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                </form>
                             {% else %}
                                 -
                             {% endif %}
@@ -49,4 +60,44 @@
             </table>
         </div>
     </div>
+
+    <!-- Modal reprogramar reserva -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" id="editForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reprogramar <span id="editNombre" class="text-danger"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">Horario del campus: 07:00 – 21:00. Debe iniciar y terminar el mismo día.</p>
+                        <div class="mb-3">
+                            <label class="form-label">Inicio</label>
+                            <input type="datetime-local" name="fecha_inicio" id="editInicio" class="form-control" step="900" required>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label">Fin</label>
+                            <input type="datetime-local" name="fecha_fin" id="editFin" class="form-control" step="900" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-una">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('editModal').addEventListener('show.bs.modal', function (e) {
+            const btn = e.relatedTarget;
+            this.querySelector('#editForm').action =
+                "{{ url_for('edit_booking', id='__ID__') }}".replace('__ID__', btn.dataset.id);
+            this.querySelector('#editNombre').textContent = btn.dataset.nombre;
+            this.querySelector('#editInicio').value = btn.dataset.inicio;
+            this.querySelector('#editFin').value = btn.dataset.fin;
+        });
+    </script>
 {% endblock %}

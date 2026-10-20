@@ -1,26 +1,33 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h3 class="fw-bold mb-1">Espacios del campus</h3>
-    <p class="text-muted mb-4">Consultá disponibilidad y reservá salas, laboratorios y canchas.</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Espacios del campus</h3>
+            <p class="text-muted mb-0">Consultá disponibilidad y reservá salas, laboratorios y canchas.</p>
+        </div>
+        <a href="{{ url_for('create_resource') }}" class="btn btn-una">+ Nuevo espacio</a>
+    </div>
 
     <div class="d-flex gap-2 mb-4">
-        <input type="text" class="form-control" placeholder="Buscar espacios...">
-        <select class="form-select w-auto">
-            <option>Todos los tipos</option>
-            <option>Salas de estudio</option>
-            <option>Laboratorios</option>
+        <input type="text" id="buscador" class="form-control" placeholder="Buscar espacios...">
+        <select id="filtroTipo" class="form-select w-auto">
+            <option value="" {% if not tipo_actual %}selected{% endif %}>Todos los tipos</option>
+            <option value="sala_estudio" {% if tipo_actual == 'sala_estudio' %}selected{% endif %}>Salas de estudio</option>
+            <option value="laboratorio" {% if tipo_actual == 'laboratorio' %}selected{% endif %}>Laboratorios</option>
+            <option value="cancha" {% if tipo_actual == 'cancha' %}selected{% endif %}>Canchas</option>
         </select>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4" id="listaEspacios">
         {% for resource in resources %}
-        <div class="col-md-3">
+        {% set ocupado = resource._id in ocupados %}
+        <div class="col-md-3 espacio-col" data-busqueda="{{ (resource.nombre ~ ' ' ~ resource.ubicacion) | lower }}">
             <div class="space-card">
                 <div class="space-img-placeholder position-relative">
                     UNA
-                    {% if loop.index % 3 == 0 %}
-                        <span class="badge-occupied position-absolute top-0 start-0 m-2">+ Ocupado</span>
+                    {% if ocupado %}
+                        <span class="badge-occupied position-absolute top-0 start-0 m-2">+ Ocupado ahora</span>
                     {% else %}
                         <span class="badge-available position-absolute top-0 start-0 m-2">+ Disponible</span>
                     {% endif %}
@@ -30,15 +37,54 @@
                     <h6 class="fw-bold mt-1 mb-2">{{ resource.nombre }}</h6>
                     <p class="text-muted mb-1" style="font-size: 0.8rem;"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</p>
                     <p class="text-muted mb-3" style="font-size: 0.8rem;"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</p>
-                    
-                    {% if loop.index % 3 == 0 %}
-                        <button class="btn btn-secondary w-100 btn-sm" disabled>No disponible</button>
-                    {% else %}
-                        <a href="#" class="btn btn-una w-100 btn-sm">Reservar espacio</a>
-                    {% endif %}
+
+                    <button type="button" class="btn btn-una w-100 btn-sm mb-2"
+                            data-bs-toggle="modal" data-bs-target="#reserveModal"
+                            data-id="{{ resource._id }}" data-nombre="{{ resource.nombre }}">
+                        Reservar espacio
+                    </button>
+
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('edit_resource', id=resource._id) }}" class="btn btn-outline-secondary btn-sm flex-fill">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <form method="post" action="{{ url_for('delete_resource', id=resource._id) }}" class="flex-fill"
+                              onsubmit="return confirm('¿Eliminar {{ resource.nombre }}? Esta acción no se puede deshacer.')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="col-12 text-center text-muted py-5">No hay espacios registrados.</div>
         {% endfor %}
     </div>
+
+    <div id="sinResultados" class="text-center text-muted py-5" style="display: none;">
+        No se encontraron espacios con esa búsqueda.
+    </div>
+
+    {% include "reserveModal.html" %}
+
+    <script>
+        // Filtro por tipo: recarga la pagina con ?tipo=...
+        document.getElementById('filtroTipo').addEventListener('change', function () {
+            window.location = this.value ? "{{ url_for('spaces') }}?tipo=" + this.value : "{{ url_for('spaces') }}";
+        });
+
+        // Buscador en vivo por nombre o ubicacion
+        document.getElementById('buscador').addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            let visibles = 0;
+            document.querySelectorAll('.espacio-col').forEach(function (col) {
+                const coincide = col.dataset.busqueda.includes(q);
+                col.style.display = coincide ? '' : 'none';
+                if (coincide) visibles++;
+            });
+            document.getElementById('sinResultados').style.display = visibles ? 'none' : 'block';
+        });
+    </script>
 {% endblock %}

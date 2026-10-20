@@ -1,0 +1,58 @@
+<!-- Modal reutilizable para reservar un espacio (se incluye en spaces.html y dashboard.html) -->
+<div class="modal fade" id="reserveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="reserveForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reservar <span id="reserveNombre" class="text-danger"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        Horario del campus: 07:00 – 21:00. La reserva debe iniciar y terminar el mismo día.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">Inicio</label>
+                        <input type="datetime-local" name="fecha_inicio" id="reserveInicio" class="form-control" step="900" required>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Fin</label>
+                        <input type="datetime-local" name="fecha_fin" id="reserveFin" class="form-control" step="900" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-una">Confirmar reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const modal = document.getElementById('reserveModal');
+        const inicio = document.getElementById('reserveInicio');
+        const fin = document.getElementById('reserveFin');
+        const actionBase = "{{ url_for('create_booking', id_recurso='__ID__') }}";
+
+        function aLocalISO(d) {
+            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        }
+
+        modal.addEventListener('show.bs.modal', function (e) {
+            const btn = e.relatedTarget;
+            modal.querySelector('#reserveForm').action = actionBase.replace('__ID__', btn.dataset.id);
+            modal.querySelector('#reserveNombre').textContent = btn.dataset.nombre;
+            inicio.min = fin.min = aLocalISO(new Date());
+            inicio.value = fin.value = '';
+        });
+
+        // Al elegir el inicio, sugiere un fin una hora despues
+        inicio.addEventListener('change', function () {
+            if (!inicio.value) return;
+            const sugerido = new Date(new Date(inicio.value).getTime() + 60 * 60000);
+            fin.value = aLocalISO(sugerido);
+        });
+    })();
+</script>

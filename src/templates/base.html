@@ -27,13 +27,15 @@
         </div>
 
         <small class="text-muted fw-bold mb-2 d-block" style="font-size: 0.7rem;">MENÚ PRINCIPAL</small>
-        
+
         <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
             <i class="bi bi-grid"></i> Inicio
         </a>
         <a href="{{ url_for('my_bookings') }}" class="nav-item {% if request.path == '/my-bookings' %}active{% endif %}">
             <i class="bi bi-calendar-event"></i> Mis reservas
-            <span class="badge bg-danger rounded-pill ms-auto">3</span>
+            {% if reservas_activas %}
+                <span class="badge bg-danger rounded-pill ms-auto">{{ reservas_activas }}</span>
+            {% endif %}
         </a>
         <a href="{{ url_for('spaces') }}" class="nav-item {% if request.path == '/spaces' %}active{% endif %}">
             <i class="bi bi-door-open"></i> Espacios
@@ -43,7 +45,7 @@
         </a>
 
         <small class="text-muted fw-bold mt-4 mb-2 d-block" style="font-size: 0.7rem;">ADMINISTRACIÓN</small>
-        
+
         <a href="{{ url_for('users') }}" class="nav-item {% if request.path == '/users' %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
@@ -51,7 +53,6 @@
             <i class="bi bi-gear"></i> Configuración
         </a>
 
-        <!-- Logout button in the background -->
         <div class="mt-auto pt-3 border-top">
             <a href="{{ url_for('logout') }}" class="nav-item text-danger">
                 <i class="bi bi-box-arrow-left"></i> Cerrar sesión
@@ -73,6 +74,16 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mensajes flash (exito, error, info) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category in ['success', 'danger', 'info', 'warning'] else 'secondary' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
     </div>
