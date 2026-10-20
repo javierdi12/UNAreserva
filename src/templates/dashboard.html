@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <small class="text-danger fw-bold" style="letter-spacing: 1px;">MARTES, 20 DE OCTUBRE DE 2026</small>
+    <h2 class="mt-2 mb-1 fw-bold">Hola, Juan</h2>
+    <p class="text-muted mb-4">Encontrá un espacio, reservá tu horario y aprovechá mejor tu campus.</p>
+
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon text-danger"><i class="bi bi-calendar-check"></i></div>
+                <div>
+                    <small class="text-muted d-block">Reservas activas</small>
+                    <h4 class="mb-0 fw-bold">3</h4>
+                    <small class="text-success" style="font-size: 0.7rem;">+1 esta mes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon text-secondary"><i class="bi bi-door-closed"></i></div>
+                <div>
+                    <small class="text-muted d-block">Espacios disponibles</small>
+                    <h4 class="mb-0 fw-bold">24</h4>
+                    <small class="text-muted" style="font-size: 0.7rem;">de 32 espacios</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon text-dark"><i class="bi bi-clock-history"></i></div>
+                <div>
+                    <small class="text-muted d-block">Horas reservadas</small>
+                    <h4 class="mb-0 fw-bold">8.5 h</h4>
+                    <small class="text-muted" style="font-size: 0.7rem;">este mes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Espacios disponibles -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold mb-0">Espacios disponibles</h5>
+            <small class="text-muted">Elegí el espacio ideal para tus actividades</small>
+        </div>
+        <a href="{{ url_for('spaces') }}" class="btn btn-outline-secondary btn-sm">Ver todos →</a>
+    </div>
+
+    <div class="row g-4 mb-5">
+        {% for resource in resources[:4] %}
+        <div class="col-md-3">
+            <div class="space-card">
+                <div class="space-img-placeholder position-relative">
+                    UNA
+                    <span class="badge-available position-absolute top-0 start-0 m-2">+ Disponible</span>
+                </div>
+                <div class="p-3">
+                    <small class="text-danger fw-bold" style="font-size: 0.7rem;">{{ resource.tipo | upper }}</small>
+                    <h6 class="fw-bold mt-1 mb-2">{{ resource.nombre }}</h6>
+                    <p class="text-muted mb-1" style="font-size: 0.8rem;"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</p>
+                    <p class="text-muted mb-3" style="font-size: 0.8rem;"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</p>
+                    <a href="#" class="btn btn-una w-100 btn-sm">Reservar espacio</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
