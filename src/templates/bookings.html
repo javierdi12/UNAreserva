@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Mis reservas</h3>
+            <p class="text-muted">Administrá tus reservas actuales y consultá tu historial.</p>
+        </div>
+        <a href="{{ url_for('spaces') }}" class="btn btn-una">+ Nueva reserva</a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Recurso</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td class="fw-bold">{{ booking.nombre_recurso }}</td>
+                        <td>{{ booking.fecha_inicio[:10] }} <small class="text-muted">{{ booking.fecha_inicio[11:16] }}</small></td>
+                        <td>{{ booking.fecha_fin[:10] }} <small class="text-muted">{{ booking.fecha_fin[11:16] }}</small></td>
+                        <td>
+                            {% if booking.estado == 'activa' %}
+                                <span class="badge bg-success-subtle text-success border border-success">Confirmada</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger">Cancelada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if booking.estado == 'activa' %}
+                                <a href="{{ url_for('cancel_booking', id=booking._id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de cancelar esta reserva?')">Cancelar</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center py-4 text-muted">No tenés reservas registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

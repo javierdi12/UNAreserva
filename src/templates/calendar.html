@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <!-- Import FullCalendar -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales-all.global.min.js'></script>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Calendario</h3>
+            <p class="text-muted mb-0">Revisá tus reservas y la disponibilidad del campus.</p>
+        </div>
+        <a href="{{ url_for('spaces') }}" class="btn btn-una">+ Nueva reserva</a>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="card border-0 shadow-sm p-4">
+        <div id='calendar'></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es', // Set the calendar to Spanish
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana'
+                },
+                // Here we connect to our Python API (Now in English!)
+                events: '/api/bookings',
+                eventClick: function(info) {
+                    // If they click on a reservation, we display an alert
+                    alert('Reserva: ' + info.event.title + '\nInicio: ' + info.event.start.toLocaleString());
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+
+    <style>
+        /* Settings to make the calendar look nice with UNA */
+        .fc-theme-standard td, .fc-theme-standard th {
+            border-color: #eee;
+        }
+        .fc .fc-button-primary {
+            background-color: #D32F2F;
+            border-color: #D32F2F;
+            text-transform: capitalize;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #b71c1c;
+            border-color: #b71c1c;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active {
+            background-color: #b71c1c;
+            border-color: #b71c1c;
+        }
+        .fc-day-today {
+            background-color: #ffebee !important;
+        }
+    </style>
+{% endblock %}

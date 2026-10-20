@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Agregar Nuevo Recurso</h2>
+    
+    <div class="card" style="max-width: 500px; margin: 0 auto;">
+        <form method="POST">
+            <div class="form-group">
+                <label>Nombre del recurso:</label>
+                <input type="text" name="nombre" required placeholder="Ej: Sala de Estudio 101">
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo de recurso:</label>
+                <select name="tipo">
+                    <option value="sala_estudio">Sala de Estudio</option>
+                    <option value="laboratorio">Laboratorio</option>
+                    <option value="cancha">Cancha Deportiva</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Capacidad (personas):</label>
+                <input type="number" name="capacidad" required placeholder="Ej: 30">
+            </div>
+            
+            <div class="form-group">
+                <label>Ubicación:</label>
+                <input type="text" name="ubicacion" required placeholder="Ej: Edificio A, Piso 2">
+            </div>
+            
+            <button type="submit" class="btn" style="width: 100%;">Guardar Recurso</button>
+        </form>
+    </div>
+    
+    <div style="text-align: center; margin-top: 1rem;">
+        <a href="{{ url_for('index') }}" style="color: #666; text-decoration: none;">← Volver al inicio</a>
+    </div>
+{% endblock %}
