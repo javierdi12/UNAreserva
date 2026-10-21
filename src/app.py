@@ -368,6 +368,7 @@ def logout():
     return redirect(url_for('dashboard'))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     print("Iniciando servidor web de UNAreserva...")
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)    # Pasar a True para debuguear.
+    
