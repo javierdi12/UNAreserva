@@ -219,3 +219,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# BD
+data/*.db
+data/*.sqlite
+data/*.sqlite3 
+crear_backlog.ps1
