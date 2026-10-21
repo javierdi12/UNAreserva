@@ -2,14 +2,9 @@
 UNAreserva (Flask): API REST (main) + vistas web (developer).
 
 Ejecutar desde la raiz del proyecto:
-    python src/app.py
+    python -m src.app
 """
-import os
-import sys
 from datetime import date, datetime
-
-# Raiz del proyecto en el path, para que funcione `from src.crud import ...`
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bson import ObjectId
 from flask import (
@@ -19,10 +14,10 @@ from pymongo.errors import PyMongoError
 from redis.exceptions import RedisError
 
 # --- main (API REST) ---
-import servicios
-from config import Config
-from models import Recurso
-from servicios import ConflictoReserva, RecursoOcupado
+from src import servicios
+from src.config import Config
+from src.models import Recurso
+from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
 from src.crud import recursos, reservas, usuarios

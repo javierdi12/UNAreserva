@@ -17,8 +17,8 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from redis.exceptions import RedisError
 
-from config import Config
-from models import Recurso, Reserva
+from src.config import Config
+from src.models import Recurso, Reserva
 
 LOCK_TTL = 10  # segundos que dura el bloqueo en Redis
 
