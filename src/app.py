@@ -182,12 +182,62 @@ def home():
     return render_template('home.html', total_espacios=len(recursos.listar()))
 
 
+# --- Utilidades para el dashboard ---
+DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+         "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def _a_datetime(texto):
+    """Convierte 'YYYY-MM-DDTHH:MM...' a datetime; None si no se puede."""
+    try:
+        return datetime.fromisoformat(str(texto)[:16])
+    except ValueError:
+        return None
+
+
+def _ocupados_ahora():
+    """IDs (str) de los recursos con una reserva activa en este momento."""
+    ahora = datetime.now()
+    ocupados = set()
+    for b in reservas.listar():
+        if b.get("estado") != "activa":
+            continue
+        ini, fin = _a_datetime(b.get("fecha_inicio")), _a_datetime(b.get("fecha_fin"))
+        if ini and fin and ini <= ahora < fin:
+            ocupados.add(str(b.get("id_recurso")))
+    return ocupados
+
+
 @app.route('/dashboard')
 def dashboard():
+    ahora = datetime.now()
+    mis_reservas = reservas.listar(id_usuario=USER_EMAIL)
+
+    activas, horas_mes = 0, 0.0
+    for b in mis_reservas:
+        if b.get("estado") != "activa":
+            continue
+        ini, fin = _a_datetime(b.get("fecha_inicio")), _a_datetime(b.get("fecha_fin"))
+        if not ini or not fin:
+            continue
+        if fin >= ahora:                                   # próximas y en curso
+            activas += 1
+        if ini.year == ahora.year and ini.month == ahora.month:
+            horas_mes += (fin - ini).total_seconds() / 3600
+
+    todos = recursos.listar()
+    ocupados = _ocupados_ahora()
+    libres = [r for r in todos if str(r["_id"]) not in ocupados]
+
     return render_template(
         'dashboard.html',
-        resources=recursos.listar(),
-        bookings=reservas.listar(limite=5),
+        resources=libres[:4],
+        stats={"activas": activas, "horas_mes": round(horas_mes, 1)},
+        disponibles_total=len(libres),
+        total_espacios=len(todos),
+        hoy_texto=f"{DIAS[ahora.weekday()].capitalize()}, {ahora.day} de {MESES[ahora.month - 1]}",
+        reservas_activas=activas,   # el contador rojo del sidebar
     )
 
 
@@ -375,5 +425,5 @@ def logout():
 
 if __name__ == '__main__':
     print("Iniciando servidor web de UNAreserva...")
-    app.run(debug=True, use_reloader=False)    # Pasar a True para debuguear.
+    app.run(debug=True, use_reloader=True)    # Pasar a True para debuguear.
     
