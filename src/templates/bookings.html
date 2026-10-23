@@ -1,40 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-header">
         <div>
-            <h3 class="fw-bold mb-1">Mis reservas</h3>
-            <p class="text-muted">Administrá tus reservas actuales y consultá tu historial.</p>
+            <h3>Mis reservas</h3>
+            <p>Administrá tus reservas actuales y consultá tu historial.</p>
         </div>
-        <a href="{{ url_for('spaces') }}" class="btn btn-una">+ Nueva reserva</a>
+        <a href="{{ url_for('spaces') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nueva reserva</a>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="seg" id="filtroEstado">
+            <button type="button" class="active" data-estado="">Todas</button>
+            <button type="button" data-estado="activa">Confirmadas</button>
+            <button type="button" data-estado="cancelada">Canceladas</button>
+        </div>
+        <small class="text-muted">{{ bookings | length }} reserva(s) en total</small>
+    </div>
+
+    <div class="card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
                     <tr>
                         <th>Recurso</th>
-                        <th>Fecha Inicio</th>
-                        <th>Fecha Fin</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
                         <th>Estado</th>
-                        <th>Acciones</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for booking in bookings %}
-                    <tr>
+                    <tr data-estado="{{ booking.estado }}">
                         <td class="fw-bold">{{ booking.nombre_recurso }}</td>
-                        <td>{{ booking.fecha_inicio[:10] }} <small class="text-muted">{{ booking.fecha_inicio[11:16] }}</small></td>
-                        <td>{{ booking.fecha_fin[:10] }} <small class="text-muted">{{ booking.fecha_fin[11:16] }}</small></td>
+                        <td>{{ booking.fecha_inicio[:10] }} <small class="text-muted ms-1">{{ booking.fecha_inicio[11:16] }}</small></td>
+                        <td>{{ booking.fecha_fin[:10] }} <small class="text-muted ms-1">{{ booking.fecha_fin[11:16] }}</small></td>
                         <td>
                             {% if booking.estado == 'activa' %}
-                                <span class="badge bg-success-subtle text-success border border-success">Confirmada</span>
+                                <span class="pill pill-success">Confirmada</span>
                             {% else %}
-                                <span class="badge bg-danger-subtle text-danger border border-danger">Cancelada</span>
+                                <span class="pill pill-danger">Cancelada</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-end text-nowrap">
                             {% if booking.estado == 'activa' %}
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
                                         data-bs-toggle="modal" data-bs-target="#editModal"
@@ -42,19 +51,27 @@
                                         data-nombre="{{ booking.nombre_recurso }}"
                                         data-inicio="{{ booking.fecha_inicio[:16] }}"
                                         data-fin="{{ booking.fecha_fin[:16] }}">
-                                    Reprogramar
+                                    <i class="bi bi-arrow-repeat"></i> Reprogramar
                                 </button>
                                 <form method="post" action="{{ url_for('cancel_booking', id=booking._id) }}" class="d-inline"
-                                      onsubmit="return confirm('¿Estás seguro de cancelar esta reserva?')">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                      data-confirm data-title="¿Cancelar esta reserva?"
+                                      data-text="{{ booking.nombre_recurso }} · {{ booking.fecha_inicio[:10] }} {{ booking.fecha_inicio[11:16] }}. Quedará en tu historial como cancelada."
+                                      data-button="Sí, cancelar reserva">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar</button>
                                 </form>
                             {% else %}
-                                -
+                                <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center py-4 text-muted">No tenés reservas registradas.</td></tr>
+                    <tr><td colspan="5">
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <div class="fw-bold mb-1">No tenés reservas registradas</div>
+                            <a href="{{ url_for('spaces') }}" class="btn btn-una btn-sm mt-2">Reservar un espacio</a>
+                        </div>
+                    </td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -65,13 +82,19 @@
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form method="post" id="editForm">
+                <form method="post" id="editForm" novalidate>
                     <div class="modal-header">
-                        <h5 class="modal-title">Reprogramar <span id="editNombre" class="text-danger"></span></h5>
+                        <div>
+                            <h5 class="modal-title mb-0">Reprogramar reserva</h5>
+                            <small class="text-danger fw-bold" id="editNombre"></small>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-muted small">Horario del campus: 07:00 – 21:00. Debe iniciar y terminar el mismo día.</p>
+                        <div class="hint mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Horario del campus: 07:00 – 21:00. Debe iniciar y terminar el mismo día.
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Inicio</label>
                             <input type="datetime-local" name="fecha_inicio" id="editInicio" class="form-control" step="900" required>
@@ -89,15 +112,52 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script>
-        document.getElementById('editModal').addEventListener('show.bs.modal', function (e) {
-            const btn = e.relatedTarget;
-            this.querySelector('#editForm').action =
-                "{{ url_for('edit_booking', id='__ID__') }}".replace('__ID__', btn.dataset.id);
-            this.querySelector('#editNombre').textContent = btn.dataset.nombre;
-            this.querySelector('#editInicio').value = btn.dataset.inicio;
-            this.querySelector('#editFin').value = btn.dataset.fin;
+{% block scripts %}
+<script>
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editInicio = document.getElementById('editInicio');
+    const editFin = document.getElementById('editFin');
+
+    editModal.addEventListener('show.bs.modal', function (e) {
+        const btn = e.relatedTarget;
+        editForm.action = "{{ url_for('edit_booking', id='__ID__') }}".replace('__ID__', btn.dataset.id);
+        document.getElementById('editNombre').textContent = btn.dataset.nombre;
+        editInicio.value = btn.dataset.inicio;
+        editFin.value = btn.dataset.fin;
+        editForm.dataset.ok = '';
+    });
+
+    editForm.addEventListener('submit', async function (e) {
+        if (editForm.dataset.ok) return;
+        e.preventDefault();
+        const i = editInicio.value, f = editFin.value;
+        let error = null;
+        if (!i || !f) error = 'Completá la fecha de inicio y de fin.';
+        else if (new Date(i) >= new Date(f)) error = 'La hora de inicio debe ser anterior a la de fin.';
+        else if (new Date(i) < new Date()) error = 'No se puede reprogramar en el pasado.';
+        else if (i.slice(0, 10) !== f.slice(0, 10)) error = 'La reserva debe iniciar y terminar el mismo día.';
+        else if (i.slice(11, 16) < '07:00' || f.slice(11, 16) > '21:00') error = 'El horario del campus es de 07:00 a 21:00.';
+
+        if (error) {
+            Swal.fire({ icon: 'warning', title: 'Revisá el horario', text: error, confirmButtonText: 'Entendido' });
+            return;
+        }
+        const ok = await confirmar({ icon: 'question', title: '¿Guardar el nuevo horario?', button: 'Sí, guardar' });
+        if (ok) { editForm.dataset.ok = '1'; editForm.submit(); }
+    });
+
+    // Filtro por estado (en el navegador)
+    document.querySelectorAll('#filtroEstado button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.querySelectorAll('#filtroEstado button').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            document.querySelectorAll('tbody tr[data-estado]').forEach(function (tr) {
+                tr.style.display = (!b.dataset.estado || tr.dataset.estado === b.dataset.estado) ? '' : 'none';
+            });
         });
-    </script>
+    });
+</script>
 {% endblock %}

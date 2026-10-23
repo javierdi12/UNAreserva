@@ -2,15 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>UNAreserva - UNA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
 </head>
 <body>
 
     <!-- SIDE MENU -->
-    <div class="sidebar d-flex flex-column">
+    <aside class="sidebar d-flex flex-column" id="sidebar">
         <div class="logo-area">
             <div class="logo-icon">U</div>
             <div>
@@ -19,17 +21,21 @@
             </div>
         </div>
 
-        <div class="mb-4">
-            <select class="form-select form-select-sm text-muted" style="border-radius: 8px;">
+        <div class="mb-2 px-1">
+            <select class="form-select form-select-sm text-muted">
                 <option>Campus Omar Dengo</option>
                 <option>Campus Benjamín Núñez</option>
             </select>
         </div>
 
-        <small class="text-muted fw-bold mb-2 d-block" style="font-size: 0.7rem;">MENÚ PRINCIPAL</small>
+        <div class="nav-section">Menú principal</div>
 
-        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
-            <i class="bi bi-grid"></i> Inicio
+        <a href="{{ url_for('home') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+            <i class="bi bi-house-door"></i> Home
+        </a>
+
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+            <i class="bi bi-grid-1x2"></i> Dashboard
         </a>
         <a href="{{ url_for('my_bookings') }}" class="nav-item {% if request.path == '/my-bookings' %}active{% endif %}">
             <i class="bi bi-calendar-event"></i> Mis reservas
@@ -37,16 +43,16 @@
                 <span class="badge bg-danger rounded-pill ms-auto">{{ reservas_activas }}</span>
             {% endif %}
         </a>
-        <a href="{{ url_for('spaces') }}" class="nav-item {% if request.path == '/spaces' %}active{% endif %}">
+        <a href="{{ url_for('spaces') }}" class="nav-item {% if request.path.startswith('/spaces') or request.path.startswith('/resources') %}active{% endif %}">
             <i class="bi bi-door-open"></i> Espacios
         </a>
         <a href="{{ url_for('calendar') }}" class="nav-item {% if request.path == '/calendar' %}active{% endif %}">
-            <i class="bi bi-clock"></i> Calendario
+            <i class="bi bi-calendar3"></i> Calendario
         </a>
 
-        <small class="text-muted fw-bold mt-4 mb-2 d-block" style="font-size: 0.7rem;">ADMINISTRACIÓN</small>
+        <div class="nav-section">Administración</div>
 
-        <a href="{{ url_for('users') }}" class="nav-item {% if request.path == '/users' %}active{% endif %}">
+        <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
         <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
@@ -54,40 +60,92 @@
         </a>
 
         <div class="mt-auto pt-3 border-top">
-            <a href="{{ url_for('logout') }}" class="nav-item text-danger">
+            <a href="{{ url_for('home') }}" class="nav-item text-danger" data-confirm
+               data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
                 <i class="bi bi-box-arrow-left"></i> Cerrar sesión
             </a>
         </div>
-    </div>
+    </aside>
 
     <!-- DYNAMIC CONTENT -->
     <div class="main-content">
-        <div class="d-flex justify-content-end align-items-center mb-4 pb-2 border-bottom">
-            <div class="d-flex align-items-center gap-3">
-                <i class="bi bi-bell fs-5 text-muted"></i>
+        <header class="topbar">
+            <button type="button" class="icon-btn menu-toggle" id="menuToggle" aria-label="Menú">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <span class="icon-btn"><i class="bi bi-bell"></i></span>
                 <div class="d-flex align-items-center gap-2">
-                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">JD</div>
-                    <div>
-                        <span class="d-block fw-bold" style="font-size: 0.9rem;">Juan Delgado</span>
-                        <small class="text-muted" style="font-size: 0.75rem;">Estudiante</small>
+                    <div class="avatar">JD</div>
+                    <div class="d-none d-sm-block lh-sm">
+                        <span class="d-block fw-bold" style="font-size: 0.88rem;">Juan Delgado</span>
+                        <small class="text-muted" style="font-size: 0.74rem;">Estudiante</small>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Mensajes flash (exito, error, info) -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category if category in ['success', 'danger', 'info', 'warning'] else 'secondary' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
-            {% endfor %}
-        {% endwith %}
+        </header>
 
         {% block content %}{% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ---------- Helpers SweetAlert2 (disponibles en todas las paginas) ----------
+        const Toast = Swal.mixin({
+            toast: true, position: 'top-end', showConfirmButton: false,
+            timer: 3500, timerProgressBar: true,
+            didOpen: (t) => { t.addEventListener('mouseenter', Swal.stopTimer); t.addEventListener('mouseleave', Swal.resumeTimer); }
+        });
+
+        function confirmar({ title, text, button = 'Confirmar', icon = 'warning' }) {
+            return Swal.fire({
+                icon, title, text, showCancelButton: true,
+                confirmButtonText: button, cancelButtonText: 'Cancelar', reverseButtons: true, focusCancel: true
+            }).then(r => r.isConfirmed);
+        }
+
+        // Formularios con data-confirm: piden confirmacion antes de enviar
+        document.addEventListener('submit', async function (e) {
+            const form = e.target;
+            if (!form.matches('form[data-confirm]') || form.dataset.ok) return;
+            e.preventDefault();
+            const ok = await confirmar({
+                title: form.dataset.title, text: form.dataset.text, button: form.dataset.button || 'Confirmar'
+            });
+            if (ok) { form.dataset.ok = '1'; form.submit(); }
+        });
+
+        // Enlaces con data-confirm (ej. cerrar sesion)
+        document.addEventListener('click', async function (e) {
+            const a = e.target.closest('a[data-confirm]');
+            if (!a) return;
+            e.preventDefault();
+            const ok = await confirmar({ title: a.dataset.title, text: a.dataset.text, button: a.dataset.button || 'Confirmar' });
+            if (ok) window.location = a.href;
+        });
+
+        // Menu lateral en movil
+        document.getElementById('menuToggle').addEventListener('click', function () {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // ---------- Mensajes flash de Flask -> SweetAlert2 ----------
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        const FLASH = {{ messages | tojson }};
+        {% endwith %}
+        FLASH.forEach(function ([category, message]) {
+            if (category === 'danger' || category === 'warning') {
+                Swal.fire({
+                    icon: category === 'danger' ? 'error' : 'warning',
+                    title: category === 'danger' ? 'No se pudo completar' : 'Atención',
+                    text: message, confirmButtonText: 'Entendido'
+                });
+            } else {
+                Toast.fire({ icon: category === 'success' ? 'success' : 'info', title: message });
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,76 +1,88 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <small class="text-danger fw-bold" style="letter-spacing: 1px;">{{ hoy_texto }}</small>
-    <h2 class="mt-2 mb-1 fw-bold">Hola, Juan</h2>
-    <p class="text-muted mb-4">Encontrá un espacio, reservá tu horario y aprovechá mejor tu campus.</p>
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">{{ hoy_texto }}</span>
+            <h2 class="mt-1">Hola, Juan 👋</h2>
+            <p>Encontrá un espacio, reservá tu horario y aprovechá mejor tu campus.</p>
+        </div>
+        <a href="{{ url_for('spaces') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nueva reserva</a>
+    </div>
 
     <!-- Tarjetas de resumen -->
-    <div class="row mb-5">
+    <div class="row g-3 mb-5">
         <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon text-danger"><i class="bi bi-calendar-check"></i></div>
+                <div class="stat-icon red"><i class="bi bi-calendar-check"></i></div>
                 <div>
-                    <small class="text-muted d-block">Reservas activas</small>
-                    <h4 class="mb-0 fw-bold">{{ stats.activas }}</h4>
-                    <small class="text-muted" style="font-size: 0.7rem;">próximas y en curso</small>
+                    <div class="stat-label">Reservas activas</div>
+                    <div class="stat-value">{{ stats.activas }}</div>
+                    <div class="stat-label">próximas y en curso</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon text-secondary"><i class="bi bi-door-closed"></i></div>
+                <div class="stat-icon green"><i class="bi bi-door-open"></i></div>
                 <div>
-                    <small class="text-muted d-block">Espacios disponibles</small>
-                    <h4 class="mb-0 fw-bold">{{ disponibles_total }}</h4>
-                    <small class="text-muted" style="font-size: 0.7rem;">de {{ total_espacios }} espacios ahora</small>
+                    <div class="stat-label">Espacios disponibles</div>
+                    <div class="stat-value">{{ disponibles_total }}</div>
+                    <div class="stat-label">de {{ total_espacios }} espacios ahora</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon text-dark"><i class="bi bi-clock-history"></i></div>
+                <div class="stat-icon blue"><i class="bi bi-clock-history"></i></div>
                 <div>
-                    <small class="text-muted d-block">Horas reservadas</small>
-                    <h4 class="mb-0 fw-bold">{{ stats.horas_mes }} h</h4>
-                    <small class="text-muted" style="font-size: 0.7rem;">este mes</small>
+                    <div class="stat-label">Horas reservadas</div>
+                    <div class="stat-value">{{ stats.horas_mes }} h</div>
+                    <div class="stat-label">este mes</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Espacios disponibles -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-end mb-3">
         <div>
             <h5 class="fw-bold mb-0">Espacios disponibles</h5>
             <small class="text-muted">Elegí el espacio ideal para tus actividades</small>
         </div>
-        <a href="{{ url_for('spaces') }}" class="btn btn-outline-secondary btn-sm">Ver todos →</a>
+        <a href="{{ url_for('spaces') }}" class="btn btn-outline-secondary btn-sm">Ver todos <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
 
     <div class="row g-4 mb-5">
         {% for resource in resources %}
-        <div class="col-md-3">
+        <div class="col-sm-6 col-xl-3">
             <div class="space-card">
-                <div class="space-img-placeholder position-relative">
-                    UNA
-                    <span class="badge-available position-absolute top-0 start-0 m-2">+ Disponible</span>
+                <div class="space-img-placeholder tipo-{{ resource.tipo }}">
+                    {% if resource.tipo == 'laboratorio' %}<i class="bi bi-pc-display"></i>
+                    {% elif resource.tipo == 'cancha' %}<i class="bi bi-dribbble"></i>
+                    {% else %}<i class="bi bi-book"></i>{% endif %}
+                    <span class="badge-available position-absolute top-0 start-0 m-2">● Disponible</span>
                 </div>
-                <div class="p-3">
-                    <small class="text-danger fw-bold" style="font-size: 0.7rem;">{{ resource.tipo | upper }}</small>
+                <div class="card-body-pro">
+                    <span class="tipo-tag">{{ resource.tipo | replace('_', ' ') | upper }}</span>
                     <h6 class="fw-bold mt-1 mb-2">{{ resource.nombre }}</h6>
-                    <p class="text-muted mb-1" style="font-size: 0.8rem;"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</p>
-                    <p class="text-muted mb-3" style="font-size: 0.8rem;"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</p>
-                    <button type="button" class="btn btn-una w-100 btn-sm"
+                    <div class="meta"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</div>
+                    <div class="meta mb-3"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</div>
+                    <button type="button" class="btn btn-una w-100 btn-sm mt-auto"
                             data-bs-toggle="modal" data-bs-target="#reserveModal"
                             data-id="{{ resource._id }}" data-nombre="{{ resource.nombre }}">
-                        Reservar espacio
+                        <i class="bi bi-calendar-plus me-1"></i> Reservar espacio
                     </button>
                 </div>
             </div>
         </div>
         {% else %}
-        <div class="col-12 text-center text-muted py-4">No hay espacios disponibles en este momento.</div>
+        <div class="col-12">
+            <div class="card empty-state">
+                <i class="bi bi-door-closed"></i>
+                No hay espacios disponibles en este momento.
+            </div>
+        </div>
         {% endfor %}
     </div>
 

@@ -178,6 +178,11 @@ def sincronizar():
 
 # --- MAIN VIEWS ---
 @app.route('/')
+def home():
+    return render_template('home.html', total_espacios=len(recursos.listar()))
+
+
+@app.route('/dashboard')
 def dashboard():
     return render_template(
         'dashboard.html',

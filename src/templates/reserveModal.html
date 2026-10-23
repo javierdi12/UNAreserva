@@ -2,15 +2,19 @@
 <div class="modal fade" id="reserveModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="post" id="reserveForm">
+            <form method="post" id="reserveForm" novalidate>
                 <div class="modal-header">
-                    <h5 class="modal-title">Reservar <span id="reserveNombre" class="text-danger"></span></h5>
+                    <div>
+                        <h5 class="modal-title mb-0">Reservar espacio</h5>
+                        <small class="text-danger fw-bold" id="reserveNombre"></small>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small">
+                    <div class="hint mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
                         Horario del campus: 07:00 – 21:00. La reserva debe iniciar y terminar el mismo día.
-                    </p>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Inicio</label>
                         <input type="datetime-local" name="fecha_inicio" id="reserveInicio" class="form-control" step="900" required>
@@ -22,7 +26,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-una">Confirmar reserva</button>
+                    <button type="submit" class="btn btn-una"><i class="bi bi-check2-circle me-1"></i> Confirmar reserva</button>
                 </div>
             </form>
         </div>
@@ -32,8 +36,10 @@
 <script>
     (function () {
         const modal = document.getElementById('reserveModal');
+        const form = document.getElementById('reserveForm');
         const inicio = document.getElementById('reserveInicio');
         const fin = document.getElementById('reserveFin');
+        const nombre = document.getElementById('reserveNombre');
         const actionBase = "{{ url_for('create_booking', id_recurso='__ID__') }}";
 
         function aLocalISO(d) {
@@ -42,17 +48,46 @@
 
         modal.addEventListener('show.bs.modal', function (e) {
             const btn = e.relatedTarget;
-            modal.querySelector('#reserveForm').action = actionBase.replace('__ID__', btn.dataset.id);
-            modal.querySelector('#reserveNombre').textContent = btn.dataset.nombre;
+            form.action = actionBase.replace('__ID__', btn.dataset.id);
+            nombre.textContent = btn.dataset.nombre;
             inicio.min = fin.min = aLocalISO(new Date());
             inicio.value = fin.value = '';
+            form.dataset.ok = '';
         });
 
         // Al elegir el inicio, sugiere un fin una hora despues
         inicio.addEventListener('change', function () {
             if (!inicio.value) return;
-            const sugerido = new Date(new Date(inicio.value).getTime() + 60 * 60000);
-            fin.value = aLocalISO(sugerido);
+            fin.value = aLocalISO(new Date(new Date(inicio.value).getTime() + 60 * 60000));
         });
+
+        // Validacion en cliente con SweetAlert2 (el servidor igual valida)
+        form.addEventListener('submit', async function (e) {
+            if (form.dataset.ok) return;
+            e.preventDefault();
+
+            const error = validar(inicio.value, fin.value);
+            if (error) {
+                Swal.fire({ icon: 'warning', title: 'Revisá el horario', text: error, confirmButtonText: 'Entendido' });
+                return;
+            }
+            const ok = await confirmar({
+                icon: 'question',
+                title: '¿Confirmar reserva?',
+                text: nombre.textContent + ' · ' + inicio.value.replace('T', ' ') + ' a ' + fin.value.slice(11),
+                button: 'Sí, reservar'
+            });
+            if (ok) { form.dataset.ok = '1'; form.submit(); }
+        });
+
+        function validar(i, f) {
+            if (!i || !f) return 'Completá la fecha de inicio y de fin.';
+            const di = new Date(i), df = new Date(f);
+            if (di >= df) return 'La hora de inicio debe ser anterior a la de fin.';
+            if (di < new Date()) return 'No se puede reservar en el pasado.';
+            if (i.slice(0, 10) !== f.slice(0, 10)) return 'La reserva debe iniciar y terminar el mismo día.';
+            if (i.slice(11, 16) < '07:00' || f.slice(11, 16) > '21:00') return 'El horario del campus es de 07:00 a 21:00.';
+            return null;
+        }
     })();
 </script>
