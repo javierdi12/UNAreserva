@@ -90,6 +90,17 @@ Este script crea las colecciones en MongoDB y la tabla en SQLite:
 
     python scripts/init_db.py
 
+Para cargar datos sintéticos reproducibles en MongoDB:
+
+    python scripts/load_data.py
+
+La carga usa la semilla `42`, la fecha base `2030-01-07` y reemplaza el contenido
+de `recursos` y `reservas`. Para variar el tamaño manteniendo la repetibilidad:
+
+    python scripts/load_data.py --seed 7 --resources 10 --reservations 20
+
+También se puede cambiar la fecha base con `--base-date YYYY-MM-DD`.
+
 ### Paso 6: Verificar la conexión a los motores
 
 Ejecuta el script principal para comprobar que los 3 motores están accesibles:
