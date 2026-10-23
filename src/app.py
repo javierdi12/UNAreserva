@@ -179,10 +179,35 @@ def sincronizar():
 # --- MAIN VIEWS ---
 @app.route('/')
 def dashboard():
+    resources = recursos.listar()
+    bookings = reservas.listar(limite=5)
+    active_bookings = reservas.listar(estado="activa")
+    now = datetime.now()
+    hours_this_month = 0.0
+
+    for booking in active_bookings:
+        try:
+            start = booking.get("fecha_inicio")
+            end = booking.get("fecha_fin")
+            start = datetime.fromisoformat(start) if isinstance(start, str) else start
+            end = datetime.fromisoformat(end) if isinstance(end, str) else end
+            if start and end and start.year == now.year and start.month == now.month:
+                hours_this_month += (end - start).total_seconds() / 3600
+        except (TypeError, ValueError):
+            # Ignora registros antiguos con fechas incompletas o invalidas.
+            continue
+
     return render_template(
         'dashboard.html',
-        resources=recursos.listar(),
-        bookings=reservas.listar(limite=5),
+        resources=resources,
+        bookings=bookings,
+        stats={
+            "activas": len(active_bookings),
+            "horas_mes": round(hours_this_month, 1),
+        },
+        disponibles_total=len(resources),
+        total_espacios=len(resources),
+        hoy_texto=now.strftime("%d/%m/%Y"),
     )
 
 

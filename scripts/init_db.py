@@ -7,7 +7,7 @@ from pymongo import MongoClient
 load_dotenv()
 def init_mongo():
     client = MongoClient(os.getenv("MONGO_URI"))
-    db = client.unareserva_db
+    db = client[os.getenv("MONGO_DB_NAME", "unareserva_db")]
     if "recursos" not in db.list_collection_names():
         db.create_collection("recursos")
     if "reservas" not in db.list_collection_names():

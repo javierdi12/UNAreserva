@@ -47,7 +47,7 @@ def get_db():
             serverSelectionTimeoutMS=5000,
             tlsCAFile=certifi.where(),
         )
-    return _mongo.unareserva_db
+    return _mongo[Config.MONGO_DB_NAME]
 
 
 def get_redis():
