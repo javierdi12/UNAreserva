@@ -4,6 +4,7 @@ UNAreserva (Flask): API REST (main) + vistas web (developer).
 Ejecutar desde la raiz del proyecto:
     python -m src.app
 """
+from collections import Counter
 from datetime import date, datetime
 
 from bson import ObjectId
@@ -20,7 +21,7 @@ from src.models import Recurso
 from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
-from src.crud import recursos, reservas, usuarios
+from src.crud import recursos, reservas, tipos_recurso, usuarios
 from src.core.errores import ErrorValidacion, NoEncontrado
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -176,75 +177,72 @@ def sincronizar():
 # VISTAS WEB (developer)
 # =====================================================================
 
-# --- MAIN VIEWS ---
-@app.route('/')
-def home():
-    return render_template('home.html', total_espacios=len(recursos.listar()))
-
-
-# --- Utilidades para el dashboard ---
-DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
-MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-         "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-
-
-def _a_datetime(texto):
-    """Convierte 'YYYY-MM-DDTHH:MM...' a datetime; None si no se puede."""
-    try:
-        return datetime.fromisoformat(str(texto)[:16])
-    except ValueError:
-        return None
+DIAS = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
+         "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
 
 
 def _ocupados_ahora():
-    """IDs (str) de los recursos con una reserva activa en este momento."""
-    ahora = datetime.now()
-    ocupados = set()
-    for b in reservas.listar():
-        if b.get("estado") != "activa":
-            continue
-        ini, fin = _a_datetime(b.get("fecha_inicio")), _a_datetime(b.get("fecha_fin"))
-        if ini and fin and ini <= ahora < fin:
-            ocupados.add(str(b.get("id_recurso")))
-    return ocupados
+    """IDs de recursos con una reserva activa en este momento."""
+    ahora = datetime.now().isoformat()
+    return {
+        r["id_recurso"]
+        for r in reservas.listar(estado="activa")
+        if r["fecha_inicio"] <= ahora < r["fecha_fin"]
+    }
 
 
-@app.route('/dashboard')
+@app.context_processor
+def inject_globals():
+    """Variables disponibles en todos los templates."""
+    ahora = datetime.now().isoformat()
+    activas = [r for r in reservas.listar(id_usuario=USER_EMAIL, estado="activa")
+               if r["fecha_fin"] > ahora]
+    lista_tipos = tipos_recurso.listar()
+    return {
+        "reservas_activas": len(activas),               # badge del menu lateral
+        "tipos": lista_tipos,                           # selects y filtros
+        "tipos_map": {t["codigo"]: t for t in lista_tipos},  # icono/color/nombre por codigo
+    }
+
+
+# --- MAIN VIEWS ---
+@app.route('/')
 def dashboard():
-    ahora = datetime.now()
-    mis_reservas = reservas.listar(id_usuario=USER_EMAIL)
-
-    activas, horas_mes = 0, 0.0
-    for b in mis_reservas:
-        if b.get("estado") != "activa":
-            continue
-        ini, fin = _a_datetime(b.get("fecha_inicio")), _a_datetime(b.get("fecha_fin"))
-        if not ini or not fin:
-            continue
-        if fin >= ahora:                                   # próximas y en curso
-            activas += 1
-        if ini.year == ahora.year and ini.month == ahora.month:
-            horas_mes += (fin - ini).total_seconds() / 3600
-
+    hoy = datetime.now()
+    ahora = hoy.isoformat()
     todos = recursos.listar()
     ocupados = _ocupados_ahora()
-    libres = [r for r in todos if str(r["_id"]) not in ocupados]
+    disponibles = [r for r in todos if r["_id"] not in ocupados]
+
+    mias = reservas.listar(id_usuario=USER_EMAIL, estado="activa")
+    activas = [r for r in mias if r["fecha_fin"] > ahora]
+
+    horas_mes = 0.0
+    for r in mias:
+        ini = datetime.fromisoformat(r["fecha_inicio"])
+        if ini.year == hoy.year and ini.month == hoy.month:
+            horas_mes += (datetime.fromisoformat(r["fecha_fin"]) - ini).total_seconds() / 3600
 
     return render_template(
         'dashboard.html',
-        resources=libres[:4],
-        stats={"activas": activas, "horas_mes": round(horas_mes, 1)},
-        disponibles_total=len(libres),
+        hoy_texto=f"{DIAS[hoy.weekday()]}, {hoy.day} DE {MESES[hoy.month - 1]}",
+        stats={"activas": len(activas), "horas_mes": round(horas_mes, 1)},
+        resources=disponibles[:4],
+        disponibles_total=len(disponibles),
         total_espacios=len(todos),
-        hoy_texto=f"{DIAS[ahora.weekday()].capitalize()}, {ahora.day} de {MESES[ahora.month - 1]}",
-        reservas_activas=activas,   # el contador rojo del sidebar
     )
 
 
 @app.route('/spaces')
 def spaces():
     tipo = request.args.get('tipo')  # filtro opcional: /spaces?tipo=laboratorio
-    return render_template('spaces.html', resources=recursos.listar(tipo))
+    return render_template(
+        'spaces.html',
+        resources=recursos.listar(tipo),
+        tipo_actual=tipo,
+        ocupados=_ocupados_ahora(),
+    )
 
 
 # --- CRUD RESOURCES ---
@@ -296,6 +294,68 @@ def delete_resource(id):
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
     return redirect(url_for('spaces'))
+
+
+# --- CRUD RESOURCE TYPES ---
+def _datos_tipo():
+    return {
+        "nombre": request.form['nombre'],
+        "icono": request.form.get('icono', ''),
+        "color": request.form.get('color', ''),
+    }
+
+
+def _form_tipo(tipo):
+    return render_template(
+        'tipo_form.html', tipo=tipo,
+        iconos=tipos_recurso.ICONOS, colores=tipos_recurso.COLORES,
+    )
+
+
+@app.route('/resource-types')
+def resource_types():
+    uso = Counter(r["tipo"] for r in recursos.listar())  # cuantos espacios usa cada tipo
+    return render_template('tipos.html', uso=uso)
+
+
+@app.route('/resource-types/new', methods=['GET', 'POST'])
+def create_resource_type():
+    if request.method == 'POST':
+        try:
+            tipos_recurso.crear(_datos_tipo())
+            flash('Tipo de recurso creado exitosamente', 'success')
+            return redirect(url_for('resource_types'))
+        except ErrorValidacion as e:
+            flash(str(e), 'danger')
+    return _form_tipo(None)
+
+
+@app.route('/resource-types/edit/<id>', methods=['GET', 'POST'])
+def edit_resource_type(id):
+    try:
+        tipo = tipos_recurso.obtener(id)
+    except (NoEncontrado, ErrorValidacion) as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('resource_types'))
+
+    if request.method == 'POST':
+        try:
+            tipos_recurso.actualizar(id, _datos_tipo())
+            flash('Tipo de recurso actualizado', 'success')
+            return redirect(url_for('resource_types'))
+        except (NoEncontrado, ErrorValidacion) as e:
+            flash(str(e), 'danger')
+    return _form_tipo(tipo)
+
+
+@app.route('/resource-types/delete/<id>', methods=['POST'])
+def delete_resource_type(id):
+    try:
+        tipos_recurso.eliminar(id)
+        flash('Tipo de recurso eliminado', 'info')
+    except (NoEncontrado, ErrorValidacion) as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('resource_types'))
 
 
 # --- BOOKINGS ---
@@ -425,5 +485,5 @@ def logout():
 
 if __name__ == '__main__':
     print("Iniciando servidor web de UNAreserva...")
-    app.run(debug=True, use_reloader=True)    # Pasar a True para debuguear.
+    app.run(debug=True, use_reloader=False)    # Pasar a True para debuguear.
     
