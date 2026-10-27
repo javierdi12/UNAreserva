@@ -5,6 +5,7 @@
 - SQLite:  respaldo local cuando MongoDB o Redis no estan disponibles.
 
 """
+import os
 import sqlite3
 import uuid
 from datetime import date, datetime, time, timedelta
@@ -60,7 +61,24 @@ def get_redis():
 
 
 def _conn_sqlite():
-    return sqlite3.connect(Config.SQLITE_PATH)
+    """Abre SQLite y garantiza que exista el almacenamiento de pendientes."""
+    directorio = os.path.dirname(os.path.abspath(Config.SQLITE_PATH))
+    os.makedirs(directorio, exist_ok=True)
+    conn = sqlite3.connect(Config.SQLITE_PATH)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pendientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_recurso TEXT NOT NULL,
+            id_usuario TEXT NOT NULL,
+            fecha_inicio TEXT NOT NULL,
+            fecha_fin TEXT NOT NULL,
+            sincronizado INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.commit()
+    return conn
 
 
 #  utilidades
@@ -169,13 +187,16 @@ def _intentar_reserva(id_recurso, id_usuario, inicio, fin):
 
 def _guardar_pendiente(id_recurso, id_usuario, inicio, fin):
     conn = _conn_sqlite()
-    conn.execute(
-        "INSERT INTO pendientes (id_recurso, id_usuario, fecha_inicio, fecha_fin) "
-        "VALUES (?, ?, ?, ?)",
-        (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat()),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO pendientes (id_recurso, id_usuario, fecha_inicio, fecha_fin) "
+            "VALUES (?, ?, ?, ?)",
+            (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat()),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
 
 
 def reservar(id_recurso, id_usuario, inicio: datetime, fin: datetime):
@@ -190,8 +211,8 @@ def reservar(id_recurso, id_usuario, inicio: datetime, fin: datetime):
         return {"estado": "confirmada",
                 "id": _intentar_reserva(id_recurso, id_usuario, inicio, fin)}
     except (PyMongoError, RedisError):
-        _guardar_pendiente(id_recurso, id_usuario, inicio, fin)
-        return {"estado": "pendiente", "id": None}
+        pendiente_id = _guardar_pendiente(id_recurso, id_usuario, inicio, fin)
+        return {"estado": "pendiente", "id": pendiente_id}
 
 
 def cancelar_reserva(id_reserva):
@@ -220,26 +241,32 @@ def sincronizar_pendientes():
     Devuelve (confirmadas, rechazadas).
     """
     conn = _conn_sqlite()
-    filas = conn.execute(
-        "SELECT id, id_recurso, id_usuario, fecha_inicio, fecha_fin "
-        "FROM pendientes WHERE sincronizado = 0"
-    ).fetchall()
+    try:
+        filas = conn.execute(
+            "SELECT id, id_recurso, id_usuario, fecha_inicio, fecha_fin "
+            "FROM pendientes WHERE sincronizado = 0 ORDER BY id"
+        ).fetchall()
 
-    ok = rechazadas = 0
-    for id_, id_recurso, id_usuario, ini, fin in filas:
-        try:
-            _intentar_reserva(id_recurso, id_usuario,
-                              datetime.fromisoformat(ini), datetime.fromisoformat(fin))
-            estado = 1
-            ok += 1
-        except (ReservaError, ValueError):
-            estado = -1
-            rechazadas += 1
-        except (PyMongoError, RedisError):
-            break  # sigue sin red; se reintenta luego
-        conn.execute("UPDATE pendientes SET sincronizado = ? WHERE id = ?", (estado, id_))
-        conn.commit()
-    conn.close()
+        ok = rechazadas = 0
+        for id_, id_recurso, id_usuario, ini, fin in filas:
+            try:
+                _intentar_reserva(
+                    id_recurso,
+                    id_usuario,
+                    datetime.fromisoformat(ini),
+                    datetime.fromisoformat(fin),
+                )
+                estado = 1
+                ok += 1
+            except (ReservaError, ValueError):
+                estado = -1
+                rechazadas += 1
+            except (PyMongoError, RedisError):
+                break  # sigue sin red; se reintenta luego
+            conn.execute("UPDATE pendientes SET sincronizado = ? WHERE id = ?", (estado, id_))
+            conn.commit()
+    finally:
+        conn.close()
     return ok, rechazadas
 
 
