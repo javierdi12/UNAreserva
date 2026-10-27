@@ -28,12 +28,12 @@
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-grid"></i></span>
                     <select name="tipo" class="form-select">
-                        {% set tipos = [('sala_estudio', 'Sala de Estudio'), ('laboratorio', 'Laboratorio'), ('cancha', 'Cancha Deportiva')] %}
-                        {% for valor, etiqueta in tipos %}
-                            <option value="{{ valor }}" {% if resource and resource.tipo == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                        {% for t in tipos %}
+                            <option value="{{ t.codigo }}" {% if resource and resource.tipo == t.codigo %}selected{% endif %}>{{ t.nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-text"><a href="{{ url_for('resource_types') }}" class="text-decoration-none">Administrar tipos de recurso</a></div>
             </div>
 
             <div class="row">
