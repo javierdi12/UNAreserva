@@ -63,12 +63,14 @@
             </a>
         {% endif %}
 
-        <div class="mt-auto pt-3 border-top">
-            <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm
-               data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
-                <i class="bi bi-box-arrow-left"></i> Cerrar sesión
-            </a>
-        </div>
+        {% if usuario_actual %}
+            <div class="mt-auto pt-3 border-top">
+                <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm
+                   data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
+                    <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+                </a>
+            </div>
+        {% endif %}
     </aside>
 
     <!-- DYNAMIC CONTENT -->

@@ -8,9 +8,13 @@
     <div class="page-header">
         <div>
             <h3>Calendario</h3>
-            <p>Revisá tus reservas y la disponibilidad del campus.</p>
+            <p>Consultá la disponibilidad del campus. Iniciá sesión para crear reservas.</p>
         </div>
-        <a href="{{ url_for('spaces') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nueva reserva</a>
+        {% if usuario_actual %}
+            <a href="{{ url_for('spaces') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nueva reserva</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-una"><i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión</a>
+        {% endif %}
     </div>
 
     <div class="d-flex gap-3 mb-3 small text-muted">

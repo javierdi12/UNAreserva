@@ -501,16 +501,14 @@ def cancel_booking(id):
 
 # --- CALENDAR ---
 @app.route('/calendar')
-@login_required
 def calendar():
     return render_template('calendar.html')
 
 
 @app.route('/api/bookings')
-@login_required
 def api_bookings():
     events = []
-    for b in reservas.listar(id_usuario=_usuario_actual()["correo"]):
+    for b in reservas.listar():
         color = "#D32F2F" if b["estado"] == "activa" else "#9e9e9e"
         events.append({
             "id": b["_id"],

@@ -90,3 +90,15 @@ def test_logout_limpia_sesion(client):
     assert respuesta.status_code == 302
     with client.session_transaction() as sesion:
         assert "usuario" not in sesion
+
+
+def test_calendario_es_publico(client):
+    respuesta = client.get("/calendar")
+    assert respuesta.status_code == 200
+    assert "Consultá la disponibilidad" in respuesta.get_data(as_text=True)
+
+
+def test_sidebar_no_muestra_logout_sin_sesion(client):
+    respuesta = client.get("/calendar")
+    contenido = respuesta.get_data(as_text=True)
+    assert "Cerrar sesión" not in contenido
