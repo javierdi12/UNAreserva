@@ -57,14 +57,13 @@
         {% for resource in resources %}
         <div class="col-sm-6 col-xl-3">
             <div class="space-card">
-                <div class="space-img-placeholder tipo-{{ resource.tipo }}">
-                    {% if resource.tipo == 'laboratorio' %}<i class="bi bi-pc-display"></i>
-                    {% elif resource.tipo == 'cancha' %}<i class="bi bi-dribbble"></i>
-                    {% else %}<i class="bi bi-book"></i>{% endif %}
+                {% set t = tipos_map.get(resource.tipo) %}
+                <div class="space-img-placeholder tipo-color-{{ t.color if t else 'red' }}">
+                    <i class="bi bi-{{ t.icono if t else 'door-open' }}"></i>
                     <span class="badge-available position-absolute top-0 start-0 m-2">● Disponible</span>
                 </div>
                 <div class="card-body-pro">
-                    <span class="tipo-tag">{{ resource.tipo | replace('_', ' ') | upper }}</span>
+                    <span class="tipo-tag">{{ (t.nombre if t else resource.tipo) | upper }}</span>
                     <h6 class="fw-bold mt-1 mb-2">{{ resource.nombre }}</h6>
                     <div class="meta"><i class="bi bi-geo-alt"></i> {{ resource.ubicacion }}</div>
                     <div class="meta mb-3"><i class="bi bi-people"></i> Hasta {{ resource.capacidad }} personas</div>

@@ -22,7 +22,7 @@ def init_mongo():
     print("[OK] Colecciones MongoDB listas: recursos, reservas, usuarios y tokens")
 def init_sqlite():
     path = os.getenv("SQLITE_PATH", "./data/unareserva_local.db")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     conn = sqlite3.connect(path)
     cursor = conn.cursor()
     cursor.execute('''
@@ -32,7 +32,7 @@ def init_sqlite():
             id_usuario TEXT NOT NULL,
             fecha_inicio TEXT NOT NULL,
             fecha_fin TEXT NOT NULL,
-            sincronizado INTEGER DEFAULT 0
+            sincronizado INTEGER NOT NULL DEFAULT 0
         )
     ''')
     conn.commit()

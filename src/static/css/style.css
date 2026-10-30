@@ -134,8 +134,6 @@ body {
     background: linear-gradient(135deg, #D32F2F 0%, #7F0000 100%);
     position: relative;
 }
-.space-img-placeholder.tipo-laboratorio { background: linear-gradient(135deg, #2F5BD3, #1B2E75); }
-.space-img-placeholder.tipo-cancha { background: linear-gradient(135deg, #168A4A, #0B4D29); }
 .space-img-placeholder .bi { font-size: 2.4rem; }
 .badge-available, .badge-occupied {
     font-size: .68rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
@@ -224,3 +222,32 @@ body {
     .main-content { margin-left: 0; padding: 0 18px 40px; }
     .topbar .menu-toggle { display: inline-flex; }
 }
+
+/* ---------- Tipos de recurso (colores e iconos dinamicos) ---------- */
+.tipo-color-red    { background: linear-gradient(135deg, #D32F2F 0%, #7F0000 100%); }
+.tipo-color-blue   { background: linear-gradient(135deg, #2F5BD3 0%, #1B2E75 100%); }
+.tipo-color-green  { background: linear-gradient(135deg, #168A4A 0%, #0B4D29 100%); }
+.tipo-color-purple { background: linear-gradient(135deg, #7B3FC4 0%, #3F1B75 100%); }
+.tipo-color-orange { background: linear-gradient(135deg, #F28A1B 0%, #A04A00 100%); }
+.tipo-color-teal   { background: linear-gradient(135deg, #0E9AA7 0%, #065A63 100%); }
+.tipo-color-gray   { background: linear-gradient(135deg, #6B7280 0%, #2F3441 100%); }
+.tipo-swatch {
+    width: 42px; height: 42px; border-radius: 12px; color: #fff; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem;
+}
+.opt-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-opt {
+    width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #4B5263;
+    cursor: pointer; transition: background .15s, border-color .15s;
+}
+.icon-opt:hover { background: #F2F3F7; }
+.btn-check:checked + .icon-opt {
+    border-color: var(--una-red); background: var(--una-red-soft); color: var(--una-red);
+    box-shadow: 0 0 0 .18rem rgba(198, 40, 40, .15);
+}
+.color-opt { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.btn-check:checked + .color-opt { box-shadow: 0 0 0 2px var(--ink); }
+.btn-check:focus-visible + .icon-opt, .btn-check:focus-visible + .color-opt { outline: 2px solid var(--una-red); outline-offset: 2px; }
+
+.icon-opt-wide { width: auto; padding: 0 16px; gap: 8px; font-size: .9rem; font-weight: 600; }

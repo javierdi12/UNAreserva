@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% set icono_actual = tipo.icono if tipo else 'three-dots' %}
+    {% set color_actual = tipo.color if tipo else 'red' %}
+
+    <div class="page-header">
+        <div>
+            <a href="{{ url_for('resource_types') }}" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Volver a tipos</a>
+            <h3 class="mt-2">{% if tipo %}Editar tipo de recurso{% else %}Nuevo tipo de recurso{% endif %}</h3>
+            <p>{% if tipo %}Modificá la apariencia de {{ tipo.nombre }}.{% else %}Creá una categoría para clasificar los espacios.{% endif %}</p>
+        </div>
+    </div>
+
+    <div class="card form-card">
+        <form method="post">
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3" style="background: #F5F6FA;">
+                <span class="tipo-swatch tipo-color-{{ color_actual }}" id="vistaPrevia" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <i class="bi bi-{{ icono_actual }}" id="vistaPreviaIcono"></i>
+                </span>
+                <div>
+                    <div class="fw-bold" id="vistaPreviaNombre">{{ tipo.nombre if tipo else 'Nombre del tipo' }}</div>
+                    <small class="text-muted">Así se verá en las tarjetas de espacios</small>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nombre del tipo</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                    <input type="text" name="nombre" id="nombreTipo" class="form-control" required maxlength="40"
+                           placeholder="Ej: Sala de Reuniones"
+                           value="{{ tipo.nombre if tipo else '' }}">
+                </div>
+                {% if tipo %}
+                    <div class="form-text">Código interno: <code>{{ tipo.codigo }}</code> (no cambia, los espacios están asociados a él).</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Icono</label>
+                <div class="opt-grid">
+                    {% for ic in iconos %}
+                        <input type="radio" class="btn-check" name="icono" id="ic-{{ ic }}" value="{{ ic }}" {% if ic == icono_actual %}checked{% endif %}>
+                        {% if ic == 'three-dots' %}
+                            <label class="icon-opt icon-opt-wide" for="ic-{{ ic }}" title="Otros"><i class="bi bi-{{ ic }}"></i> Otros</label>
+                        {% else %}
+                            <label class="icon-opt" for="ic-{{ ic }}" title="{{ ic }}"><i class="bi bi-{{ ic }}"></i></label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Color</label>
+                <div class="opt-grid">
+                    {% for c in colores %}
+                        <input type="radio" class="btn-check" name="color" id="co-{{ c }}" value="{{ c }}" {% if c == color_actual %}checked{% endif %}>
+                        <label class="color-opt tipo-color-{{ c }}" for="co-{{ c }}" title="{{ c }}"></label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('resource_types') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-una flex-fill">
+                    <i class="bi bi-check2 me-1"></i> {% if tipo %}Guardar cambios{% else %}Guardar tipo{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Vista previa en vivo
+    const prev = document.getElementById('vistaPrevia');
+    document.getElementById('nombreTipo').addEventListener('input', function () {
+        document.getElementById('vistaPreviaNombre').textContent = this.value || 'Nombre del tipo';
+    });
+    document.querySelectorAll('input[name=icono]').forEach(function (r) {
+        r.addEventListener('change', function () {
+            document.getElementById('vistaPreviaIcono').className = 'bi bi-' + r.value;
+        });
+    });
+    document.querySelectorAll('input[name=color]').forEach(function (r) {
+        r.addEventListener('change', function () {
+            prev.className = 'tipo-swatch tipo-color-' + r.value;
+        });
+    });
+</script>
+{% endblock %}
