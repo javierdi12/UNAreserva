@@ -5,9 +5,7 @@ Ejecutar desde la raiz del proyecto:
     python -m src.app
 """
 from datetime import date, datetime
-from email.message import EmailMessage
 from functools import wraps
-import smtplib
 
 from bson import ObjectId
 from flask import (
@@ -20,6 +18,7 @@ from redis.exceptions import RedisError
 from src import servicios
 from src.config import Config
 from src.models import Recurso
+from src.mailerlite import MailerLiteError, enviar_recuperacion
 from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
@@ -84,28 +83,6 @@ def no_cache_protected_pages(response):
     return response
 
 
-def _enviar_recuperacion(correo, enlace):
-    if not Config.SMTP_HOST:
-        app.logger.warning("SMTP no configurado; enlace de recuperación: %s", enlace)
-        return False
-    mensaje = EmailMessage()
-    mensaje["Subject"] = "Recuperación de contraseña - UNAreserva"
-    mensaje["From"] = Config.SMTP_FROM
-    mensaje["To"] = correo
-    mensaje.set_content(
-        "Solicitaste restablecer tu contraseña de UNAreserva.\n\n"
-        f"Abre este enlace antes de que expire:\n{enlace}\n\n"
-        "Si no hiciste esta solicitud, ignora este correo."
-    )
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as servidor:
-        if Config.SMTP_USE_TLS:
-            servidor.starttls()
-        if Config.SMTP_USERNAME:
-            servidor.login(Config.SMTP_USERNAME, Config.SMTP_PASSWORD)
-        servidor.send_message(mensaje)
-    return True
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if _usuario_actual():
@@ -146,8 +123,8 @@ def forgot_password():
             token, usuario = resultado
             enlace = f"{Config.APP_BASE_URL.rstrip('/')}{url_for('reset_password', token=token)}"
             try:
-                _enviar_recuperacion(usuario["correo"], enlace)
-            except (OSError, smtplib.SMTPException):
+                enviar_recuperacion(Config, usuario["correo"], usuario["nombre"], enlace)
+            except MailerLiteError:
                 app.logger.exception("No fue posible enviar recuperación")
         flash("Si el correo existe, recibirás instrucciones para recuperar la contraseña", "info")
         return redirect(url_for("forgot_password"))

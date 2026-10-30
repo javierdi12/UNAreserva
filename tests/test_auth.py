@@ -1,6 +1,8 @@
 import pytest
+from types import SimpleNamespace
 
 from src import app as app_module
+from src.mailerlite import enviar_recuperacion
 
 
 @pytest.fixture
@@ -102,3 +104,45 @@ def test_sidebar_no_muestra_logout_sin_sesion(client):
     respuesta = client.get("/calendar")
     contenido = respuesta.get_data(as_text=True)
     assert "Cerrar sesión" not in contenido
+
+
+def test_mailerlite_envia_suscriptor_con_enlace(monkeypatch):
+    capturado = {}
+
+    class Respuesta:
+        def __init__(self, status, body):
+            self.status = status
+            self.body = body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self):
+            return self.body
+
+    respuestas = [
+        Respuesta(201, b'{"data":{"id":"subscriber-1"}}'),
+        Respuesta(204, b""),
+        Respuesta(201, b"{}"),
+    ]
+    def fake_urlopen(request, timeout):
+        capturado.setdefault("requests", []).append(request)
+        capturado["timeout"] = timeout
+        return respuestas.pop(0)
+
+    monkeypatch.setattr("src.mailerlite.urlopen", fake_urlopen)
+    config = SimpleNamespace(
+        MAILERLITE_API_TOKEN="token",
+        MAILERLITE_RESET_GROUP_ID="grupo-1",
+        MAILERLITE_RESET_FIELD_KEY="reset_link",
+        MAILERLITE_API_VERSION="",
+        MAILERLITE_API_BASE_URL="https://connect.mailerlite.com/api",
+        MAILERLITE_TIMEOUT=10,
+    )
+
+    assert enviar_recuperacion(config, "ana@example.com", "Ana", "https://app/reset")
+    assert len(capturado["requests"]) == 3
+    assert capturado["requests"][0].get_header("Authorization") == "Bearer token"
+    assert b"https://app/reset" in capturado["requests"][0].data
+    assert capturado["requests"][1].method == "DELETE"
+    assert capturado["requests"][2].method == "POST"
