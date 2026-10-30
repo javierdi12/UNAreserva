@@ -25,23 +25,39 @@
                     <div class="d-flex align-items-center gap-3 mb-4">
                         <div class="avatar" style="width: 64px; height: 64px; font-size: 1.2rem;">JD</div>
                         <div>
-                            <div class="fw-bold">Juan Delgado</div>
-                            <small class="text-muted">Estudiante</small>
+                        <div class="fw-bold">{{ usuario.nombre }}</div>
+                        <small class="text-muted">{{ usuario.rol|capitalize }}</small>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nombre completo</label>
-                            <input type="text" class="form-control" value="Juan Delgado" required>
+                            <input type="text" class="form-control" value="{{ usuario.nombre }}" disabled>
                         </div>
                         <div class="col-md-6 mb-4">
                             <label class="form-label">Correo institucional</label>
-                            <input type="email" class="form-control" value="juan.delgado@una.ac.cr" required>
+                            <input type="email" class="form-control" value="{{ usuario.correo }}" disabled>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-una"><i class="bi bi-check2 me-1"></i> Guardar cambios</button>
                 </form>
             </div>
+            <hr class="my-4">
+            <h5 class="fw-bold mb-1">Cambiar contraseña</h5>
+            <p class="text-muted small mb-3">Usá una contraseña de al menos 8 caracteres.</p>
+            <form method="post" action="{{ url_for('change_password') }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nueva contraseña</label>
+                        <input type="password" name="password" class="form-control" minlength="8" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Confirmar contraseña</label>
+                        <input type="password" name="password_confirm" class="form-control" minlength="8" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-una"><i class="bi bi-shield-lock me-1"></i> Actualizar contraseña</button>
+            </form>
         </div>
     </div>
 {% endblock %}

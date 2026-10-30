@@ -119,6 +119,30 @@ Deberías ver una salida como esta:
 
 Si algún motor falla, revisa las variables del archivo .env y las credenciales en MongoDB Atlas.
 
+## Autenticación
+
+La aplicación usa sesiones Flask y contraseñas almacenadas como hashes. El registro
+público crea únicamente estudiantes. Para preparar la base de datos y crear el
+primer administrador:
+
+    python scripts/init_db.py
+    python scripts/init_admin.py
+
+Antes de ejecutar el segundo comando, configura `ADMIN_EMAIL`, `ADMIN_PASSWORD` y
+opcionalmente `ADMIN_NAME` en el entorno. Nunca guardes esas variables en Git ni
+las imprimas en logs.
+
+La recuperación de contraseña usa MailerLite. Configura `MAILERLITE_API_TOKEN`,
+`MAILERLITE_RESET_GROUP_ID`, `MAILERLITE_RESET_FIELD_KEY` y `APP_BASE_URL`.
+En MailerLite crea el campo personalizado indicado por
+`MAILERLITE_RESET_FIELD_KEY` y una automatización cuyo disparador sea la entrada
+al grupo indicado por `MAILERLITE_RESET_GROUP_ID`. El correo de esa automatización
+debe incluir el campo personalizado como enlace de recuperación.
+
+El token de API se genera desde Integrations > MailerLite API. No lo guardes en
+Git ni lo imprimas en logs. La API de MailerLite usa el endpoint base
+`https://connect.mailerlite.com/api` y autenticación Bearer.
+
 
 ## Licencia
 

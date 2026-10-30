@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
+
 <body>
 
     <!-- SIDE MENU -->
@@ -31,41 +33,46 @@
         <div class="nav-section">Menú principal</div>
 
 
-        
+
         <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
             <i class="bi bi-grid-1x2"></i> Inicio
         </a>
-        <a href="{{ url_for('my_bookings') }}" class="nav-item {% if request.path == '/my-bookings' %}active{% endif %}">
+        <a href="{{ url_for('my_bookings') }}"
+            class="nav-item {% if request.path == '/my-bookings' %}active{% endif %}">
             <i class="bi bi-calendar-event"></i> Mis reservas
             {% if reservas_activas %}
-                <span class="badge bg-danger rounded-pill ms-auto">{{ reservas_activas }}</span>
+            <span class="badge bg-danger rounded-pill ms-auto">{{ reservas_activas }}</span>
             {% endif %}
         </a>
-        <a href="{{ url_for('spaces') }}" class="nav-item {% if request.path.startswith('/spaces') or request.path.startswith('/resources') %}active{% endif %}">
+        <a href="{{ url_for('spaces') }}"
+            class="nav-item {% if request.path.startswith('/spaces') or request.path.startswith('/resources') %}active{% endif %}">
             <i class="bi bi-door-open"></i> Espacios
         </a>
         <a href="{{ url_for('calendar') }}" class="nav-item {% if request.path == '/calendar' %}active{% endif %}">
             <i class="bi bi-calendar3"></i> Calendario
         </a>
 
+        {% if usuario_actual and usuario_actual.rol == 'administrador' %}
         <div class="nav-section">Administración</div>
 
         <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
-        <a href="{{ url_for('resource_types') }}" class="nav-item {% if request.path.startswith('/resource-types') %}active{% endif %}">
-            <i class="bi bi-tags"></i> Tipos de recurso
-        </a>
+        {% endif %}
+        {% if usuario_actual %}
         <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
             <i class="bi bi-gear"></i> Configuración
         </a>
+        {% endif %}
 
+        {% if usuario_actual %}
         <div class="mt-auto pt-3 border-top">
-            <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm
-               data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
+            <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm data-title="¿Cerrar sesión?"
+                data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
                 <i class="bi bi-box-arrow-left"></i> Cerrar sesión
             </a>
         </div>
+        {% endif %}
     </aside>
 
     <!-- DYNAMIC CONTENT -->
@@ -77,10 +84,12 @@
             <div class="ms-auto d-flex align-items-center gap-3">
                 <span class="icon-btn"><i class="bi bi-bell"></i></span>
                 <div class="d-flex align-items-center gap-2">
-                    <div class="avatar">JD</div>
+                    <div class="avatar">{{ (usuario_actual.nombre[:1] if usuario_actual else '?') | upper }}</div>
                     <div class="d-none d-sm-block lh-sm">
-                        <span class="d-block fw-bold" style="font-size: 0.88rem;">Juan Delgado</span>
-                        <small class="text-muted" style="font-size: 0.74rem;">Estudiante</small>
+                        <span class="d-block fw-bold" style="font-size: 0.88rem;">{{ usuario_actual.nombre if
+                            usuario_actual else 'Invitado' }}</span>
+                        <small class="text-muted" style="font-size: 0.74rem;">{{ usuario_actual.rol|capitalize if
+                            usuario_actual else '' }}</small>
                     </div>
                 </div>
             </div>
@@ -132,7 +141,7 @@
         });
 
         // ---------- Mensajes flash de Flask -> SweetAlert2 ----------
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% with messages = get_flashed_messages(with_categories = true) %}
         const FLASH = {{ messages | tojson }};
         {% endwith %}
         FLASH.forEach(function ([category, message]) {
@@ -149,4 +158,5 @@
     </script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

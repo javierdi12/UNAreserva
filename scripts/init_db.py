@@ -12,7 +12,14 @@ def init_mongo():
         db.create_collection("recursos")
     if "reservas" not in db.list_collection_names():
         db.create_collection("reservas")
-    print("[OK] Colecciones MongoDB listas: recursos, reservas")
+    if "usuarios" not in db.list_collection_names():
+        db.create_collection("usuarios")
+    if "password_reset_tokens" not in db.list_collection_names():
+        db.create_collection("password_reset_tokens")
+    db["usuarios"].create_index("correo", unique=True)
+    db["password_reset_tokens"].create_index("token_hash", unique=True)
+    db["password_reset_tokens"].create_index("expira_en", expireAfterSeconds=0)
+    print("[OK] Colecciones MongoDB listas: recursos, reservas, usuarios y tokens")
 def init_sqlite():
     path = os.getenv("SQLITE_PATH", "./data/unareserva_local.db")
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
