@@ -50,17 +50,21 @@
             <i class="bi bi-calendar3"></i> Calendario
         </a>
 
-        <div class="nav-section">Administración</div>
+        {% if usuario_actual and usuario_actual.rol == 'administrador' %}
+            <div class="nav-section">Administración</div>
 
-        <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
-            <i class="bi bi-people"></i> Usuarios
-        </a>
-        <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
-            <i class="bi bi-gear"></i> Configuración
-        </a>
+            <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
+                <i class="bi bi-people"></i> Usuarios
+            </a>
+        {% endif %}
+        {% if usuario_actual %}
+            <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+                <i class="bi bi-gear"></i> Configuración
+            </a>
+        {% endif %}
 
         <div class="mt-auto pt-3 border-top">
-            <a href="{{ url_for('home') }}" class="nav-item text-danger" data-confirm
+            <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm
                data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
                 <i class="bi bi-box-arrow-left"></i> Cerrar sesión
             </a>
@@ -76,10 +80,10 @@
             <div class="ms-auto d-flex align-items-center gap-3">
                 <span class="icon-btn"><i class="bi bi-bell"></i></span>
                 <div class="d-flex align-items-center gap-2">
-                    <div class="avatar">JD</div>
+                    <div class="avatar">{{ (usuario_actual.nombre[:1] if usuario_actual else '?') | upper }}</div>
                     <div class="d-none d-sm-block lh-sm">
-                        <span class="d-block fw-bold" style="font-size: 0.88rem;">Juan Delgado</span>
-                        <small class="text-muted" style="font-size: 0.74rem;">Estudiante</small>
+                        <span class="d-block fw-bold" style="font-size: 0.88rem;">{{ usuario_actual.nombre if usuario_actual else 'Invitado' }}</span>
+                        <small class="text-muted" style="font-size: 0.74rem;">{{ usuario_actual.rol|capitalize if usuario_actual else '' }}</small>
                     </div>
                 </div>
             </div>

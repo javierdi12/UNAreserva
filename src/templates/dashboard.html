@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <span class="eyebrow">{{ hoy_texto }}</span>
-            <h2 class="mt-1">Hola, Juan 👋</h2>
+            <h2 class="mt-1">Hola, {{ usuario.nombre }} 👋</h2>
             <p>Encontrá un espacio, reservá tu horario y aprovechá mejor tu campus.</p>
         </div>
         <a href="{{ url_for('spaces') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nueva reserva</a>

@@ -1,0 +1,12 @@
+{% extends "auth_base.html" %}
+{% block auth_content %}
+<h2 class="h4 fw-bold mb-1">Crear cuenta estudiantil</h2>
+<p class="text-muted mb-4">Tu cuenta se registrará como estudiante.</p>
+<form method="post">
+    <div class="mb-3"><label class="form-label">Nombre completo</label><input type="text" name="nombre" class="form-control" required autofocus></div>
+    <div class="mb-3"><label class="form-label">Correo</label><input type="email" name="correo" class="form-control" required></div>
+    <div class="mb-3"><label class="form-label">Contraseña</label><input type="password" name="password" class="form-control" minlength="8" required><div class="form-text">Mínimo 8 caracteres.</div></div>
+    <button class="btn btn-una w-100" type="submit">Registrarme</button>
+</form>
+<p class="text-center mt-4 mb-0 small"><a href="{{ url_for('login') }}">Ya tengo una cuenta</a></p>
+{% endblock %}

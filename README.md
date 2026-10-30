@@ -108,6 +108,24 @@ Deberías ver una salida como esta:
 
 Si algún motor falla, revisa las variables del archivo .env y las credenciales en MongoDB Atlas.
 
+## Autenticación
+
+La aplicación usa sesiones Flask y contraseñas almacenadas como hashes. El registro
+público crea únicamente estudiantes. Para preparar la base de datos y crear el
+primer administrador:
+
+    python scripts/init_db.py
+    python scripts/init_admin.py
+
+Antes de ejecutar el segundo comando, configura `ADMIN_EMAIL`, `ADMIN_PASSWORD` y
+opcionalmente `ADMIN_NAME` en el entorno. Nunca guardes esas variables en Git ni
+las imprimas en logs.
+
+La recuperación de contraseña requiere configurar `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` y `APP_BASE_URL`. Si SMTP no está
+configurado, el sistema no envía correos y solo deja el enlace en el log de la
+aplicación para desarrollo local.
+
 
 ## Licencia
 
