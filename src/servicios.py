@@ -7,6 +7,7 @@
 """
 import os
 import sqlite3
+from time import perf_counter
 import uuid
 from datetime import date, datetime, time, timedelta
 
@@ -254,6 +255,7 @@ def sincronizar_pendientes(detallado=False):
     Devuelve (confirmadas, rechazadas) por compatibilidad, o un resumen
     detallado cuando ``detallado=True``.
     """
+    inicio_medicion = perf_counter()
     conn = _conn_sqlite()
     try:
         filas = conn.execute(
@@ -296,6 +298,7 @@ def sincronizar_pendientes(detallado=False):
     finally:
         conn.close()
     if detallado:
+        resumen["duracion_ms"] = round((perf_counter() - inicio_medicion) * 1000, 3)
         return resumen
     return resumen["aceptadas"], resumen["rechazadas"] + resumen["conflictos"]
 
