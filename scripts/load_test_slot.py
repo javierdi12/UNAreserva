@@ -34,4 +34,13 @@ if __name__ == "__main__":
     for resultado in resultados:
         estado = resultado["estado"]
         estados[estado] = estados.get(estado, 0) + 1
-    print({"total": len(resultados), "estados": estados})
+    confirmadas = estados.get("confirmada", 0)
+    pendientes = estados.get("pendiente", 0)
+    conflictos_evitados = len(resultados) - confirmadas - pendientes
+    print({
+        "total": len(resultados),
+        "estados": estados,
+        "confirmadas": confirmadas,
+        "conflictos_evitados": conflictos_evitados,
+        "doble_reserva_detectada": confirmadas > 1,
+    })
