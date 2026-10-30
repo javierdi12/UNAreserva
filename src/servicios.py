@@ -73,10 +73,15 @@ def _conn_sqlite():
             id_usuario TEXT NOT NULL,
             fecha_inicio TEXT NOT NULL,
             fecha_fin TEXT NOT NULL,
-            sincronizado INTEGER NOT NULL DEFAULT 0
+            sincronizado INTEGER NOT NULL DEFAULT 0,
+            ultimo_error TEXT
         )
         """
     )
+    try:
+        conn.execute("ALTER TABLE pendientes ADD COLUMN ultimo_error TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     return conn
 
@@ -185,13 +190,14 @@ def _intentar_reserva(id_recurso, id_usuario, inicio, fin):
             pass  # el TTL liberara el bloqueo solo
 
 
-def _guardar_pendiente(id_recurso, id_usuario, inicio, fin):
+def _guardar_pendiente(id_recurso, id_usuario, inicio, fin, motivo=None):
     conn = _conn_sqlite()
     try:
         cursor = conn.execute(
-            "INSERT INTO pendientes (id_recurso, id_usuario, fecha_inicio, fecha_fin) "
-            "VALUES (?, ?, ?, ?)",
-            (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat()),
+            "INSERT INTO pendientes "
+            "(id_recurso, id_usuario, fecha_inicio, fecha_fin, ultimo_error) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat(), motivo),
         )
         conn.commit()
         return cursor.lastrowid
@@ -210,8 +216,10 @@ def reservar(id_recurso, id_usuario, inicio: datetime, fin: datetime):
     try:
         return {"estado": "confirmada",
                 "id": _intentar_reserva(id_recurso, id_usuario, inicio, fin)}
-    except (PyMongoError, RedisError):
-        pendiente_id = _guardar_pendiente(id_recurso, id_usuario, inicio, fin)
+    except (PyMongoError, RedisError) as error:
+        pendiente_id = _guardar_pendiente(
+            id_recurso, id_usuario, inicio, fin, str(error) or error.__class__.__name__
+        )
         return {"estado": "pendiente", "id": pendiente_id}
 
 
