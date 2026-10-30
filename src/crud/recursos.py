@@ -4,9 +4,8 @@ from datetime import datetime
 from src.core import cache
 from src.core.errores import ErrorValidacion, NoEncontrado
 from src.core.utils import oid, serializar
+from src.crud import tipos_recurso
 from src.database import get_mongo_db
-
-TIPOS_VALIDOS = {"sala_estudio", "laboratorio", "cancha"}
 
 
 def _col():
@@ -18,8 +17,10 @@ def _validar(data, parcial=False):
         faltan = [c for c in ("nombre", "tipo", "capacidad", "ubicacion") if not data.get(c)]
         if faltan:
             raise ErrorValidacion(f"Faltan campos: {', '.join(faltan)}")
-    if "tipo" in data and data["tipo"] not in TIPOS_VALIDOS:
-        raise ErrorValidacion(f"Tipo invalido. Opciones: {', '.join(sorted(TIPOS_VALIDOS))}")
+    if "tipo" in data:
+        validos = tipos_recurso.codigos()  # ahora salen de la coleccion `tipos_recurso`
+        if data["tipo"] not in validos:
+            raise ErrorValidacion(f"Tipo invalido. Opciones: {', '.join(sorted(validos))}")
     if "capacidad" in data:
         try:
             data["capacidad"] = int(data["capacidad"])

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="page-header">
+        <div>
+            <h3>Tipos de recurso</h3>
+            <p>Definí las categorías de espacios que se pueden reservar en el campus.</p>
+        </div>
+        <a href="{{ url_for('create_resource_type') }}" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Nuevo tipo</a>
+    </div>
+
+    <div class="card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Código</th>
+                        <th>Espacios</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tipos %}
+                    {% set n = uso.get(t.codigo, 0) %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="tipo-swatch tipo-color-{{ t.color }}"><i class="bi bi-{{ t.icono }}"></i></span>
+                                <div class="fw-bold">{{ t.nombre }}</div>
+                            </div>
+                        </td>
+                        <td><code>{{ t.codigo }}</code></td>
+                        <td><span class="pill {{ 'pill-brand' if n else 'pill-neutral' }}">{{ n }} espacio{{ '' if n == 1 else 's' }}</span></td>
+                        <td class="text-end text-nowrap">
+                            <a href="{{ url_for('edit_resource_type', id=t._id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="post" action="{{ url_for('delete_resource_type', id=t._id) }}" class="d-inline"
+                                  data-confirm data-title="¿Eliminar este tipo?"
+                                  data-text="Se eliminará «{{ t.nombre }}». Esta acción no se puede deshacer."
+                                  data-button="Sí, eliminar">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        {% if n %}disabled title="Hay espacios que usan este tipo"{% endif %}>
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4">
+                        <div class="empty-state">
+                            <i class="bi bi-tags"></i>
+                            <div class="fw-bold mb-1">No hay tipos registrados</div>
+                        </div>
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

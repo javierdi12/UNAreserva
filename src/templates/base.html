@@ -30,12 +30,10 @@
 
         <div class="nav-section">Menú principal</div>
 
-        <a href="{{ url_for('home') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
-            <i class="bi bi-house-door"></i> Home
-        </a>
 
-        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
-            <i class="bi bi-grid-1x2"></i> Dashboard
+        
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+            <i class="bi bi-grid-1x2"></i> Inicio
         </a>
         <a href="{{ url_for('my_bookings') }}" class="nav-item {% if request.path == '/my-bookings' %}active{% endif %}">
             <i class="bi bi-calendar-event"></i> Mis reservas
@@ -55,12 +53,15 @@
         <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
+        <a href="{{ url_for('resource_types') }}" class="nav-item {% if request.path.startswith('/resource-types') %}active{% endif %}">
+            <i class="bi bi-tags"></i> Tipos de recurso
+        </a>
         <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
             <i class="bi bi-gear"></i> Configuración
         </a>
 
         <div class="mt-auto pt-3 border-top">
-            <a href="{{ url_for('home') }}" class="nav-item text-danger" data-confirm
+            <a href="{{ url_for('logout') }}" class="nav-item text-danger" data-confirm
                data-title="¿Cerrar sesión?" data-text="Vas a salir de UNAreserva." data-button="Sí, salir">
                 <i class="bi bi-box-arrow-left"></i> Cerrar sesión
             </a>
