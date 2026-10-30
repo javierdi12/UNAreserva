@@ -22,6 +22,30 @@ def test_login_guarda_usuario_en_sesion(client, monkeypatch):
         assert sesion["usuario"]["correo"] == "ana@example.com"
 
 
+def test_dashboard_acepta_fechas_iso_en_reservas(client, monkeypatch):
+    usuario = {
+        "_id": "u1", "nombre": "Ana", "correo": "ana@example.com",
+        "rol": "administrador",
+    }
+    with client.session_transaction() as sesion:
+        sesion["usuario"] = usuario
+
+    monkeypatch.setattr(app_module.reservas, "listar", lambda **kwargs: [{
+        "id_recurso": "r1",
+        "id_usuario": "ana@example.com",
+        "fecha_inicio": "2099-01-01T10:00:00",
+        "fecha_fin": "2099-01-01T11:00:00",
+        "estado": "activa",
+    }])
+    monkeypatch.setattr(app_module.recursos, "listar", lambda tipo=None: [])
+    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda: [])
+
+    respuesta = client.get("/dashboard")
+
+    assert respuesta.status_code == 200
+    assert "{'id_recurso':" not in respuesta.get_data(as_text=True)
+
+
 def test_login_rechaza_credenciales_invalidas(client, monkeypatch):
     monkeypatch.setattr(app_module.usuarios, "autenticar", lambda correo, password: None)
 

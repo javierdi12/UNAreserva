@@ -371,7 +371,7 @@ def dashboard():
     ahora = datetime.now()
     mis_reservas = reservas.listar(id_usuario=_usuario_actual()["correo"])
 
-    activas, horas_mes = 0, 0.0
+    reservas_activas, horas_mes = [], 0.0
     for b in mis_reservas:
         if b.get("estado") != "activa":
             continue
@@ -379,7 +379,7 @@ def dashboard():
         if not ini or not fin:
             continue
         if fin >= ahora:                                   # próximas y en curso
-            activas += 1
+            reservas_activas.append(b)
         if ini.year == ahora.year and ini.month == ahora.month:
             horas_mes += (fin - ini).total_seconds() / 3600
 
@@ -387,25 +387,14 @@ def dashboard():
     ocupados = _ocupados_ahora()
     disponibles = [r for r in todos if r["_id"] not in ocupados]
 
-    mias = reservas.listar(
-        id_usuario=_usuario_actual()["correo"], estado="activa"
-    )
-    activas = [r for r in mias if r["fecha_fin"] > ahora]
-
-    horas_mes = 0.0
-    for r in mias:
-        ini = datetime.fromisoformat(r["fecha_inicio"])
-        if ini.year == ahora.year and ini.month == ahora.month:
-            horas_mes += (datetime.fromisoformat(r["fecha_fin"]) - ini).total_seconds() / 3600
-
     return render_template(
         'dashboard.html',
-        stats={"activas": len(activas), "horas_mes": round(horas_mes, 1)},
+        stats={"activas": len(reservas_activas), "horas_mes": round(horas_mes, 1)},
         resources=disponibles[:4],
         disponibles_total=len(disponibles),
         total_espacios=len(todos),
         hoy_texto=f"{DIAS[ahora.weekday()].capitalize()}, {ahora.day} de {MESES[ahora.month - 1]}",
-        reservas_activas=activas,   # el contador rojo del sidebar
+        reservas_activas=len(reservas_activas),   # el contador rojo del sidebar
         usuario=_usuario_actual(),
     )
 
