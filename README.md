@@ -187,3 +187,24 @@ Comandos equivalentes en Linux/macOS:
 ## Licencia
 
 MIT
+
+## Resultados, arquitectura y limitaciones
+
+Las mediciones reproducibles se ejecutan sobre una base de prueba:
+
+    python scripts/benchmark_disponibilidad.py <id-recurso> --repeticiones 10
+    python scripts/load_test_slot.py <id-recurso> --solicitudes 50
+    python scripts/sync_pending.py
+
+El benchmark reporta mediana, mínimo y máximo de disponibilidad en milisegundos.
+La prueba de carga informa cuántas solicitudes fueron confirmadas, quedaron
+pendientes o entraron en conflicto; `doble_reserva_detectada` debe permanecer en
+`False`. La sincronización informa aceptación, rechazo, conflicto, pendientes y
+duración total.
+
+La arquitectura mantiene MongoDB como fuente de verdad, Redis como coordinación
+de corta duración y SQLite como cola local durable. Sus principales limitaciones
+son que Redis y MongoDB siguen siendo dependencias operativas, la cola SQLite es
+local a una instancia y las métricas no sustituyen una prueba de carga de
+producción con datos representativos. Las cifras deben guardarse junto con la
+fecha, cantidad de datos, número de repeticiones y configuración usada.
