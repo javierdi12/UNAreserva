@@ -291,8 +291,8 @@ def cancelar(id_reserva):
 @app.post("/api/sincronizar")
 @admin_required
 def sincronizar():
-    confirmadas, rechazadas = servicios.sincronizar_pendientes()
-    return jsonify(confirmadas=confirmadas, rechazadas=rechazadas)
+    resumen = servicios.sincronizar_pendientes(detallado=True)
+    return jsonify(**resumen)
 
 
 # =====================================================================
