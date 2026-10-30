@@ -276,6 +276,7 @@ def reservar():
 
 
 @app.get("/api/reservas/dia")
+@app.get("/api/reservas/hoy")
 @login_required
 def reservas_del_dia():
     lista = servicios.reservas_del_dia(_fecha_param(), request.args.get("id_recurso"))
