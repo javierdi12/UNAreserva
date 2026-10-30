@@ -318,8 +318,12 @@ def _ocupados_ahora():
 def inject_globals():
     """Variables disponibles en todos los templates."""
     ahora = datetime.now().isoformat()
-    activas = [r for r in reservas.listar(id_usuario=USER_EMAIL, estado="activa")
-               if r["fecha_fin"] > ahora]
+    usuario = _usuario_actual()
+    activas = []
+    if usuario:
+        activas = [r for r in reservas.listar(
+            id_usuario=usuario["correo"], estado="activa"
+        ) if r["fecha_fin"] > ahora]
     lista_tipos = tipos_recurso.listar()
     return {
         "reservas_activas": len(activas),               # badge del menu lateral
@@ -383,18 +387,19 @@ def dashboard():
     ocupados = _ocupados_ahora()
     disponibles = [r for r in todos if r["_id"] not in ocupados]
 
-    mias = reservas.listar(id_usuario=USER_EMAIL, estado="activa")
+    mias = reservas.listar(
+        id_usuario=_usuario_actual()["correo"], estado="activa"
+    )
     activas = [r for r in mias if r["fecha_fin"] > ahora]
 
     horas_mes = 0.0
     for r in mias:
         ini = datetime.fromisoformat(r["fecha_inicio"])
-        if ini.year == hoy.year and ini.month == hoy.month:
+        if ini.year == ahora.year and ini.month == ahora.month:
             horas_mes += (datetime.fromisoformat(r["fecha_fin"]) - ini).total_seconds() / 3600
 
     return render_template(
         'dashboard.html',
-        hoy_texto=f"{DIAS[hoy.weekday()]}, {hoy.day} DE {MESES[hoy.month - 1]}",
         stats={"activas": len(activas), "horas_mes": round(horas_mes, 1)},
         resources=disponibles[:4],
         disponibles_total=len(disponibles),
@@ -697,4 +702,3 @@ def logout():
 if __name__ == '__main__':
     print("Iniciando servidor web de UNAreserva...")
     app.run(debug=True, use_reloader=False)    # Pasar a True para debuguear.
-    
