@@ -119,6 +119,24 @@ Deberías ver una salida como esta:
 
 Si algún motor falla, revisa las variables del archivo .env y las credenciales en MongoDB Atlas.
 
+### Redis en Windows (Memurai)
+
+Instala Memurai desde [memurai.com](https://www.memurai.com/) y deja iniciado
+el servicio `Memurai`. La configuración local usa `REDIS_HOST=localhost` y
+`REDIS_PORT=6379`; también puedes configurar una URL completa con
+`REDIS_URL=redis://localhost:6379/0`.
+
+Para comprobarlo desde PowerShell:
+
+    redis-cli ping
+
+La respuesta esperada es `PONG`. Como alternativa, con Docker ejecuta:
+
+    docker run --name unareserva-redis -p 6379:6379 -d redis:7-alpine
+
+No uses `FLUSHALL` ni `FLUSHDB` en un entorno compartido; la aplicación limita
+sus llaves al prefijo configurado en `REDIS_PREFIX`.
+
 ## Autenticación
 
 La aplicación usa sesiones Flask y contraseñas almacenadas como hashes. El registro
