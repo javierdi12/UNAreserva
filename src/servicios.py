@@ -211,6 +211,17 @@ def _guardar_pendiente(id_recurso, id_usuario, inicio, fin, motivo=None):
         conn.close()
 
 
+def pendientes_locales():
+    """Devuelve cuántas solicitudes offline siguen esperando sincronización."""
+    conn = _conn_sqlite()
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM pendientes WHERE sincronizado = 0"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+
 def reservar(id_recurso, id_usuario, inicio: datetime, fin: datetime):
     """
     Intenta reservar. Devuelve {"estado": "confirmada", "id": ...} o, si hay

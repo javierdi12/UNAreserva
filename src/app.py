@@ -45,7 +45,12 @@ def _usuario_actual():
 
 @app.context_processor
 def contexto_autenticacion():
-    return {"usuario_actual": _usuario_actual()}
+    pendientes = 0
+    try:
+        pendientes = servicios.pendientes_locales()
+    except Exception:
+        pass
+    return {"usuario_actual": _usuario_actual(), "pendientes_sync": pendientes}
 
 
 def login_required(view):
