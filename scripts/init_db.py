@@ -23,6 +23,12 @@ def init_mongo():
         ("id_recurso", 1), ("estado", 1), ("fecha_inicio", 1), ("fecha_fin", 1)
     ], name="disponibilidad_reserva_idx")
     db["reservas"].create_index(
+        [("id_recurso", 1), ("fecha_inicio", 1), ("fecha_fin", 1)],
+        name="reserva_recurso_franja_unica",
+        unique=True,
+        partialFilterExpression={"estado": "activa"},
+    )
+    db["reservas"].create_index(
         [("id_usuario", 1), ("fecha_inicio", 1)], name="reservas_usuario_fecha_idx"
     )
     print("[OK] Colecciones MongoDB listas: recursos, reservas, usuarios y tokens")
