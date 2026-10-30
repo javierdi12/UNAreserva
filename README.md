@@ -190,8 +190,13 @@ MIT
 
 ## Resultados, arquitectura y limitaciones
 
+La evidencia de integración, pruebas, mediciones y decisiones de la Semana 15
+está en [`docs/seguimientos/S3.md`](docs/seguimientos/S3.md) y
+[`docs/decisiones.md`](docs/decisiones.md).
+
 Las mediciones reproducibles se ejecutan sobre una base de prueba:
 
+    python scripts/benchmark_s3.py --repeticiones 5
     python scripts/benchmark_disponibilidad.py <id-recurso> --repeticiones 10
     python scripts/load_test_slot.py <id-recurso> --solicitudes 50
     python scripts/sync_pending.py
