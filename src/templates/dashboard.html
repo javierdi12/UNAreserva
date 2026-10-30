@@ -12,6 +12,15 @@
 
     <!-- Tarjetas de resumen -->
     <div class="row g-3 mb-5">
+        {% if pendientes_sync %}
+        <div class="col-12">
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-0" role="status">
+                <i class="bi bi-cloud-arrow-up"></i>
+                <span><strong>{{ pendientes_sync }}</strong> reserva(s) pendiente(s) de sincronizar.
+                    Aún no están confirmadas en MongoDB.</span>
+            </div>
+        </div>
+        {% endif %}
         <div class="col-md-4">
             <div class="stat-card">
                 <div class="stat-icon red"><i class="bi bi-calendar-check"></i></div>

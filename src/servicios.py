@@ -7,6 +7,7 @@
 """
 import os
 import sqlite3
+from time import perf_counter
 import uuid
 from datetime import date, datetime, time, timedelta
 
@@ -73,10 +74,20 @@ def _conn_sqlite():
             id_usuario TEXT NOT NULL,
             fecha_inicio TEXT NOT NULL,
             fecha_fin TEXT NOT NULL,
-            sincronizado INTEGER NOT NULL DEFAULT 0
+            sincronizado INTEGER NOT NULL DEFAULT 0,
+            ultimo_error TEXT,
+            resultado TEXT
         )
         """
     )
+    try:
+        conn.execute("ALTER TABLE pendientes ADD COLUMN ultimo_error TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE pendientes ADD COLUMN resultado TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     return conn
 
@@ -185,16 +196,28 @@ def _intentar_reserva(id_recurso, id_usuario, inicio, fin):
             pass  # el TTL liberara el bloqueo solo
 
 
-def _guardar_pendiente(id_recurso, id_usuario, inicio, fin):
+def _guardar_pendiente(id_recurso, id_usuario, inicio, fin, motivo=None):
     conn = _conn_sqlite()
     try:
         cursor = conn.execute(
-            "INSERT INTO pendientes (id_recurso, id_usuario, fecha_inicio, fecha_fin) "
-            "VALUES (?, ?, ?, ?)",
-            (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat()),
+            "INSERT INTO pendientes "
+            "(id_recurso, id_usuario, fecha_inicio, fecha_fin, ultimo_error) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (str(id_recurso), id_usuario, inicio.isoformat(), fin.isoformat(), motivo),
         )
         conn.commit()
         return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def pendientes_locales():
+    """Devuelve cuántas solicitudes offline siguen esperando sincronización."""
+    conn = _conn_sqlite()
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM pendientes WHERE sincronizado = 0"
+        ).fetchone()[0]
     finally:
         conn.close()
 
@@ -210,8 +233,10 @@ def reservar(id_recurso, id_usuario, inicio: datetime, fin: datetime):
     try:
         return {"estado": "confirmada",
                 "id": _intentar_reserva(id_recurso, id_usuario, inicio, fin)}
-    except (PyMongoError, RedisError):
-        pendiente_id = _guardar_pendiente(id_recurso, id_usuario, inicio, fin)
+    except (PyMongoError, RedisError) as error:
+        pendiente_id = _guardar_pendiente(
+            id_recurso, id_usuario, inicio, fin, str(error) or error.__class__.__name__
+        )
         return {"estado": "pendiente", "id": pendiente_id}
 
 
@@ -234,12 +259,14 @@ def reservas_del_dia(dia: date, id_recurso=None):
 
 
 # sincronizacion
-def sincronizar_pendientes():
+def sincronizar_pendientes(detallado=False):
     """
     Reenvia a MongoDB lo guardado en SQLite.
     sincronizado: 0 = pendiente, 1 = confirmada, -1 = rechazada (choque o dato invalido).
-    Devuelve (confirmadas, rechazadas).
+    Devuelve (confirmadas, rechazadas) por compatibilidad, o un resumen
+    detallado cuando ``detallado=True``.
     """
+    inicio_medicion = perf_counter()
     conn = _conn_sqlite()
     try:
         filas = conn.execute(
@@ -247,7 +274,7 @@ def sincronizar_pendientes():
             "FROM pendientes WHERE sincronizado = 0 ORDER BY id"
         ).fetchall()
 
-        ok = rechazadas = 0
+        resumen = {"aceptadas": 0, "rechazadas": 0, "conflictos": 0, "pendientes": 0}
         for id_, id_recurso, id_usuario, ini, fin in filas:
             try:
                 _intentar_reserva(
@@ -256,18 +283,35 @@ def sincronizar_pendientes():
                     datetime.fromisoformat(ini),
                     datetime.fromisoformat(fin),
                 )
-                estado = 1
-                ok += 1
-            except (ReservaError, ValueError):
+                estado, resultado = 1, "aceptada"
+                resumen["aceptadas"] += 1
+            except RecursoOcupado:
+                resumen["pendientes"] += 1
+                continue
+            except ConflictoReserva:
+                estado, resultado = -1, "conflicto"
+                resumen["conflictos"] += 1
+            except ValueError:
+                estado, resultado = -1, "rechazada"
+                resumen["rechazadas"] += 1
+            except ReservaError:
                 estado = -1
-                rechazadas += 1
+                resultado = "rechazada"
+                resumen["rechazadas"] += 1
             except (PyMongoError, RedisError):
+                resumen["pendientes"] += 1
                 break  # sigue sin red; se reintenta luego
-            conn.execute("UPDATE pendientes SET sincronizado = ? WHERE id = ?", (estado, id_))
+            conn.execute(
+                "UPDATE pendientes SET sincronizado = ?, resultado = ? WHERE id = ?",
+                (estado, resultado, id_),
+            )
             conn.commit()
     finally:
         conn.close()
-    return ok, rechazadas
+    if detallado:
+        resumen["duracion_ms"] = round((perf_counter() - inicio_medicion) * 1000, 3)
+        return resumen
+    return resumen["aceptadas"], resumen["rechazadas"] + resumen["conflictos"]
 
 
 # demo

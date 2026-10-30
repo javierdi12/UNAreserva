@@ -60,6 +60,9 @@ def crear(id_recurso, id_usuario, fecha_inicio, fecha_fin):
             "fecha_fin": fin.isoformat(),
             "estado": "activa",
             "fecha_creacion": datetime.now().isoformat(),
+            "actualizado_en": datetime.now().isoformat(),
+            "origen": "web",
+            "historial": [{"estado": "activa", "fecha": datetime.now().isoformat()}],
         })
 
     cache.invalidar("reservas:*")
@@ -117,7 +120,13 @@ def actualizar(id_reserva, fecha_inicio, fecha_fin):
             raise ErrorValidacion("El recurso ya esta reservado en ese horario")
         _col().update_one(
             {"_id": oid(id_reserva)},
-            {"$set": {"fecha_inicio": inicio.isoformat(), "fecha_fin": fin.isoformat()}},
+            {"$set": {
+                "fecha_inicio": inicio.isoformat(), "fecha_fin": fin.isoformat(),
+                "actualizado_en": datetime.now().isoformat(),
+            }, "$push": {"historial": {
+                "estado": "reprogramada", "fecha": datetime.now().isoformat(),
+                "fecha_inicio": inicio.isoformat(), "fecha_fin": fin.isoformat(),
+            }}},
         )
 
     cache.invalidar("reservas:*")
@@ -126,7 +135,12 @@ def actualizar(id_reserva, fecha_inicio, fecha_fin):
 
 def cancelar(id_reserva):
     """UPDATE de estado (baja logica, conserva el historial)."""
-    res = _col().update_one({"_id": oid(id_reserva)}, {"$set": {"estado": "cancelada"}})
+    ahora = datetime.now().isoformat()
+    res = _col().update_one(
+        {"_id": oid(id_reserva)},
+        {"$set": {"estado": "cancelada", "cancelado_en": ahora, "actualizado_en": ahora},
+         "$push": {"historial": {"estado": "cancelada", "fecha": ahora}}},
+    )
     if res.matched_count == 0:
         raise NoEncontrado("Reserva no encontrada")
     cache.invalidar("reservas:*")

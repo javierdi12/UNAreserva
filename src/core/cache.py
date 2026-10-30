@@ -1,6 +1,7 @@
 """
 Redis: cache de lecturas y candado distribuido.
-Si Redis no esta disponible, todo funciona sin cache ni candado.
+Si Redis no esta disponible, las lecturas omiten cache pero las reservas no
+continuan sin candado.
 """
 import json
 import uuid
@@ -10,6 +11,7 @@ import redis
 
 from src.config import Config
 from src.core.errores import ErrorValidacion
+from src.db.redis_client import cliente
 
 CACHE_TTL = 60   # segundos
 LOCK_TTL = 10    # segundos
@@ -19,12 +21,7 @@ LOCK_TTL = 10    # segundos
 def get_redis():
     """Devuelve el cliente Redis o None si no hay conexion."""
     try:
-        r = redis.Redis(
-            host=Config.REDIS_HOST,
-            port=Config.REDIS_PORT,
-            decode_responses=True,
-            socket_connect_timeout=2,
-        )
+        r = cliente()
         r.ping()
         return r
     except Exception as e:
@@ -80,14 +77,15 @@ class Candado:
         self.r = get_redis()
 
     def __enter__(self):
-        if self.r:
-            try:
-                if not self.r.set(self.k, self.token, nx=True, ex=LOCK_TTL):
-                    raise ErrorValidacion(
-                        "El recurso esta siendo reservado por otro usuario, intente de nuevo"
-                    )
-            except redis.RedisError:
-                self.r = None  # sin Redis, se continua sin candado
+        if not self.r:
+            raise ErrorValidacion("Redis no disponible; no se puede reservar sin candado")
+        try:
+            if not self.r.set(self.k, self.token, nx=True, ex=LOCK_TTL):
+                raise ErrorValidacion(
+                    "El recurso esta siendo reservado por otro usuario, intente de nuevo"
+                )
+        except redis.RedisError as error:
+            raise ErrorValidacion("Redis no disponible; intenta de nuevo") from error
         return self
 
     def __exit__(self, *exc):

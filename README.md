@@ -119,6 +119,24 @@ Deberías ver una salida como esta:
 
 Si algún motor falla, revisa las variables del archivo .env y las credenciales en MongoDB Atlas.
 
+### Redis en Windows (Memurai)
+
+Instala Memurai desde [memurai.com](https://www.memurai.com/) y deja iniciado
+el servicio `Memurai`. La configuración local usa `REDIS_HOST=localhost` y
+`REDIS_PORT=6379`; también puedes configurar una URL completa con
+`REDIS_URL=redis://localhost:6379/0`.
+
+Para comprobarlo desde PowerShell:
+
+    redis-cli ping
+
+La respuesta esperada es `PONG`. Como alternativa, con Docker ejecuta:
+
+    docker run --name unareserva-redis -p 6379:6379 -d redis:7-alpine
+
+No uses `FLUSHALL` ni `FLUSHDB` en un entorno compartido; la aplicación limita
+sus llaves al prefijo configurado en `REDIS_PREFIX`.
+
 ## Autenticación
 
 La aplicación usa sesiones Flask y contraseñas almacenadas como hashes. El registro
@@ -143,7 +161,55 @@ El token de API se genera desde Integrations > MailerLite API. No lo guardes en
 Git ni lo imprimas en logs. La API de MailerLite usa el endpoint base
 `https://connect.mailerlite.com/api` y autenticación Bearer.
 
+## Equipo y estructura
+
+El proyecto se organiza por responsabilidad:
+
+    src/app.py                 API Flask y vistas web
+    src/servicios.py           Reglas de reserva y sincronización offline
+    src/crud/                  Operaciones MongoDB de recursos y reservas
+    src/db/                    Persistencia SQLite y cliente Redis
+    src/templates/             Plantillas HTML
+    tests/                     Pruebas automatizadas
+    scripts/                   Inicialización, carga y mediciones
+    docs/                      Arquitectura, modelo y reglas de conciliación
+
+Comandos equivalentes en Linux/macOS:
+
+| Windows | Linux/macOS |
+|---|---|
+| `venv\Scripts\activate` | `source venv/bin/activate` |
+| `copy .env.example .env` | `cp .env.example .env` |
+| `python src/main.py` | `python3 src/main.py` |
+| `python scripts/init_db.py` | `python3 scripts/init_db.py` |
+
 
 ## Licencia
 
 MIT
+
+## Resultados, arquitectura y limitaciones
+
+La evidencia de integración, pruebas, mediciones y decisiones de la Semana 15
+está en [`docs/seguimientos/S3.md`](docs/seguimientos/S3.md) y
+[`docs/decisiones.md`](docs/decisiones.md).
+
+Las mediciones reproducibles se ejecutan sobre una base de prueba:
+
+    python scripts/benchmark_s3.py --repeticiones 5
+    python scripts/benchmark_disponibilidad.py <id-recurso> --repeticiones 10
+    python scripts/load_test_slot.py <id-recurso> --solicitudes 50
+    python scripts/sync_pending.py
+
+El benchmark reporta mediana, mínimo y máximo de disponibilidad en milisegundos.
+La prueba de carga informa cuántas solicitudes fueron confirmadas, quedaron
+pendientes o entraron en conflicto; `doble_reserva_detectada` debe permanecer en
+`False`. La sincronización informa aceptación, rechazo, conflicto, pendientes y
+duración total.
+
+La arquitectura mantiene MongoDB como fuente de verdad, Redis como coordinación
+de corta duración y SQLite como cola local durable. Sus principales limitaciones
+son que Redis y MongoDB siguen siendo dependencias operativas, la cola SQLite es
+local a una instancia y las métricas no sustituyen una prueba de carga de
+producción con datos representativos. Las cifras deben guardarse junto con la
+fecha, cantidad de datos, número de repeticiones y configuración usada.

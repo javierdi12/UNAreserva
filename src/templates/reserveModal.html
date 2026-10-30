@@ -48,6 +48,7 @@
 
         modal.addEventListener('show.bs.modal', function (e) {
             const btn = e.relatedTarget;
+            form.dataset.recurso = btn.dataset.id;
             form.action = actionBase.replace('__ID__', btn.dataset.id);
             nombre.textContent = btn.dataset.nombre;
             inicio.min = fin.min = aLocalISO(new Date());
@@ -77,7 +78,43 @@
                 text: nombre.textContent + ' · ' + inicio.value.replace('T', ' ') + ' a ' + fin.value.slice(11),
                 button: 'Sí, reservar'
             });
-            if (ok) { form.dataset.ok = '1'; form.submit(); }
+            if (ok) {
+                form.dataset.ok = '1';
+                const respuesta = await fetch("{{ url_for('reservar') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_recurso: form.dataset.recurso,
+                        fecha_inicio: inicio.value,
+                        fecha_fin: fin.value
+                    })
+                });
+                const datos = await respuesta.json().catch(() => ({}));
+                if (respuesta.ok) {
+                    const pendiente = respuesta.status === 202;
+                    await Swal.fire({
+                        icon: pendiente ? 'warning' : 'success',
+                        title: pendiente ? 'Pendiente de sincronización' : 'Reserva confirmada',
+                        text: pendiente
+                            ? 'La reserva quedó guardada localmente y se sincronizará cuando vuelva la conexión.'
+                            : 'La reserva se creó correctamente.',
+                        confirmButtonText: 'Entendido'
+                    });
+                    window.location.href = "{{ url_for('my_bookings') }}";
+                    return;
+                }
+                form.dataset.ok = '';
+                const mensajes = {
+                    409: ['Horario no disponible', 'Ya existe una reserva activa en ese horario.'],
+                    423: ['Reserva en curso', 'Otro usuario está reservando ese recurso. Intentá de nuevo.'],
+                    503: ['Servicios no disponibles', 'MongoDB o Redis no responde. Intentá de nuevo en unos momentos.']
+                };
+                const [titulo, texto] = mensajes[respuesta.status] || [
+                    'No se pudo reservar',
+                    datos.error || 'La solicitud no pudo completarse. Intentá de nuevo.'
+                ];
+                Swal.fire({ icon: 'error', title: titulo, text: texto, confirmButtonText: 'Entendido' });
+            }
         });
 
         function validar(i, f) {
