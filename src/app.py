@@ -7,6 +7,7 @@ Ejecutar desde la raiz del proyecto:
 from collections import Counter
 from datetime import date, datetime
 from functools import wraps
+from time import perf_counter
 
 from bson import ObjectId
 from flask import (
@@ -255,8 +256,11 @@ def crear_recurso():
 @app.get("/api/disponibilidad/<id_recurso>")
 @login_required
 def disponibilidad(id_recurso):
+    inicio = perf_counter()
     libres = servicios.consultar_disponibilidad(id_recurso, _fecha_param())
-    return jsonify([{"inicio": a.isoformat(), "fin": b.isoformat()} for a, b in libres])
+    respuesta = jsonify([{"inicio": a.isoformat(), "fin": b.isoformat()} for a, b in libres])
+    respuesta.headers["X-Availability-Duration-Ms"] = f"{(perf_counter() - inicio) * 1000:.3f}"
+    return respuesta
 
 
 @app.post("/api/reservas")
