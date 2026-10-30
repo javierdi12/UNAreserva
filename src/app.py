@@ -252,6 +252,7 @@ def crear_recurso():
 
 
 @app.get("/api/recursos/<id_recurso>/disponibilidad")
+@app.get("/api/disponibilidad/<id_recurso>")
 @login_required
 def disponibilidad(id_recurso):
     libres = servicios.consultar_disponibilidad(id_recurso, _fecha_param())
