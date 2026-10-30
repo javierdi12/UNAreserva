@@ -161,6 +161,28 @@ El token de API se genera desde Integrations > MailerLite API. No lo guardes en
 Git ni lo imprimas en logs. La API de MailerLite usa el endpoint base
 `https://connect.mailerlite.com/api` y autenticación Bearer.
 
+## Equipo y estructura
+
+El proyecto se organiza por responsabilidad:
+
+    src/app.py                 API Flask y vistas web
+    src/servicios.py           Reglas de reserva y sincronización offline
+    src/crud/                  Operaciones MongoDB de recursos y reservas
+    src/db/                    Persistencia SQLite y cliente Redis
+    src/templates/             Plantillas HTML
+    tests/                     Pruebas automatizadas
+    scripts/                   Inicialización, carga y mediciones
+    docs/                      Arquitectura, modelo y reglas de conciliación
+
+Comandos equivalentes en Linux/macOS:
+
+| Windows | Linux/macOS |
+|---|---|
+| `venv\Scripts\activate` | `source venv/bin/activate` |
+| `copy .env.example .env` | `cp .env.example .env` |
+| `python src/main.py` | `python3 src/main.py` |
+| `python scripts/init_db.py` | `python3 scripts/init_db.py` |
+
 
 ## Licencia
 
