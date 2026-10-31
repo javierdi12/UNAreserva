@@ -58,6 +58,10 @@
         <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
         </a>
+        <a href="{{ url_for('resource_types') }}"
+            class="nav-item {% if request.path.startswith('/resource-types') %}active{% endif %}">
+            <i class="bi bi-tags"></i> Tipos de recurso
+        </a>
         {% endif %}
         {% if usuario_actual %}
         <a href="{{ url_for('settings') }}" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
