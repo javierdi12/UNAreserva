@@ -226,3 +226,4 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3 
 crear_backlog.ps1
+.vscode/
