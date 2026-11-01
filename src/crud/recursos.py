@@ -4,7 +4,7 @@ from datetime import datetime
 from src.core import cache
 from src.core.errores import ErrorValidacion, NoEncontrado
 from src.core.utils import oid, serializar
-from src.crud import tipos_recurso
+from src.crud import campus, tipos_recurso
 from src.database import get_mongo_db
 
 
@@ -31,13 +31,14 @@ def _validar(data, parcial=False):
 
 
 def crear(data):
-    """CREATE. data: nombre, tipo, capacidad, ubicacion, [horario]."""
+    """CREATE. data: nombre, tipo, capacidad, ubicacion, campus_id, [horario]."""
     _validar(data)
     doc = {
         "nombre": data["nombre"].strip(),
         "tipo": data["tipo"],
         "capacidad": data["capacidad"],
         "ubicacion": data["ubicacion"].strip(),
+        "campus_id": data["campus_id"],
         "horario": data.get("horario", {"apertura": "07:00", "cierre": "21:00"}),
     }
     res = _col().insert_one(doc)
@@ -45,27 +46,44 @@ def crear(data):
     return str(res.inserted_id)
 
 
-def listar(tipo=None):
+def listar(tipo=None, campus_id=None):
     """READ (lista) con cache."""
-    k = cache.key("recursos", "lista", tipo or "todos")
+    k = cache.key("recursos", "lista", tipo or "todos", campus_id or "todos")
     cached = cache.get(k)
     if cached is not None:
         return cached
 
-    filtro = {"tipo": tipo} if tipo else {}
+    filtro = {}
+    if tipo:
+        filtro["tipo"] = tipo
+    if campus_id == campus.DEFAULT_CAMPUS_ID:
+        filtro["$or"] = [
+            {"campus_id": campus_id},
+            {"campus_id": {"$exists": False}},
+        ]
+    elif campus_id:
+        filtro["campus_id"] = campus_id
     recursos = [serializar(r) for r in _col().find(filtro)]
     cache.set(k, recursos)
     return recursos
 
 
-def obtener(id_recurso):
+def obtener(id_recurso, campus_id=None):
     """READ (uno) con cache."""
-    k = cache.key("recursos", "detalle", id_recurso)
+    k = cache.key("recursos", "detalle", id_recurso, campus_id or "todos")
     cached = cache.get(k)
     if cached is not None:
         return cached
 
-    doc = _col().find_one({"_id": oid(id_recurso)})
+    filtro = {"_id": oid(id_recurso)}
+    if campus_id == campus.DEFAULT_CAMPUS_ID:
+        filtro["$or"] = [
+            {"campus_id": campus_id},
+            {"campus_id": {"$exists": False}},
+        ]
+    elif campus_id:
+        filtro["campus_id"] = campus_id
+    doc = _col().find_one(filtro)
     if not doc:
         raise NoEncontrado("Recurso no encontrado")
     serializar(doc)
@@ -75,7 +93,7 @@ def obtener(id_recurso):
 
 def actualizar(id_recurso, data):
     """UPDATE parcial: solo se modifican los campos enviados."""
-    permitidos = {"nombre", "tipo", "capacidad", "ubicacion", "horario"}
+    permitidos = {"nombre", "tipo", "capacidad", "ubicacion", "horario", "campus_id"}
     cambios = {k: v for k, v in data.items() if k in permitidos}
     if not cambios:
         raise ErrorValidacion("No hay campos para actualizar")

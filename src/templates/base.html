@@ -24,10 +24,13 @@
         </div>
 
         <div class="mb-2 px-1">
-            <select class="form-select form-select-sm text-muted">
-                <option>Campus Omar Dengo</option>
+            <form method="post" action="{{ url_for('select_campus') }}">
+                <select id="campusSelector" name="campus_id" class="form-select form-select-sm text-muted"
+                    onchange="this.form.submit()" aria-label="Seleccionar campus">
+                <option value="omar_dengo" {% if campus_actual == 'omar_dengo' %}selected{% endif %}>Campus Omar Dengo</option>
                 <option>Campus Benjamín Núñez</option>
-            </select>
+                </select>
+            </form>
         </div>
 
         <div class="nav-section">Menú principal</div>
@@ -105,6 +108,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const campusSelector = document.getElementById('campusSelector');
+        if (campusSelector) {
+            campusSelector.options[0].value = 'omar_dengo';
+            campusSelector.options[1].value = 'benjamin_nunez';
+            campusSelector.value = '{{ campus_actual }}';
+        }
         // ---------- Helpers SweetAlert2 (disponibles en todas las paginas) ----------
         const Toast = Swal.mixin({
             toast: true, position: 'top-end', showConfirmButton: false,

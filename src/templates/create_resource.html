@@ -36,6 +36,18 @@
                 <div class="form-text"><a href="{{ url_for('resource_types') }}" class="text-decoration-none">Administrar tipos de recurso</a></div>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label">Campus</label>
+                <select name="campus_id" class="form-select" required>
+                    {% for c in campuses %}
+                    <option value="{{ c.id }}" {% if (resource and resource.campus_id == c.id) or (not resource and c.id == campus_actual) %}selected{% endif %}>
+                        {{ c.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">El recurso solo aparecerá en este campus.</div>
+            </div>
+
             <div class="row">
                 <div class="col-md-5 mb-3">
                     <label class="form-label">Capacidad</label>
