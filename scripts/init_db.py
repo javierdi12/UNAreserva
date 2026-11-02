@@ -14,6 +14,9 @@ def init_mongo():
         db.create_collection("reservas")
     db["recursos"].create_index("campus_id")
     db["reservas"].create_index("id_recurso")
+    if "tipos_recurso" not in db.list_collection_names():
+        db.create_collection("tipos_recurso")
+    db["tipos_recurso"].create_index([("campus_id", 1), ("codigo", 1)], unique=True)
     if "usuarios" not in db.list_collection_names():
         db.create_collection("usuarios")
     if "password_reset_tokens" not in db.list_collection_names():

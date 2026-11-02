@@ -340,7 +340,7 @@ def inject_globals():
         activas = [r for r in reservas.listar(
             id_usuario=usuario["correo"], estado="activa", campus_id=campus_id
         ) if r["fecha_fin"] > ahora]
-    lista_tipos = tipos_recurso.listar()
+    lista_tipos = tipos_recurso.listar(campus_id=campus_id)
     return {
         "reservas_activas": len(activas),               # badge del menu lateral
         "tipos": lista_tipos,                           # selects y filtros
@@ -487,7 +487,7 @@ def edit_resource(id):
 @admin_required
 def delete_resource(id):
     try:
-        recursos.eliminar(id)
+        recursos.eliminar(id, campus_id=_campus_actual())
         flash('Recurso eliminado', 'info')
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
@@ -500,6 +500,7 @@ def _datos_tipo():
         "nombre": request.form['nombre'],
         "icono": request.form.get('icono', ''),
         "color": request.form.get('color', ''),
+        "campus_id": campus.normalizar(request.form.get('campus_id') or _campus_actual()),
     }
 
 
@@ -512,11 +513,13 @@ def _form_tipo(tipo):
 
 @app.route('/resource-types')
 def resource_types():
-    uso = Counter(r["tipo"] for r in recursos.listar(campus_id=_campus_actual()))
-    return render_template('tipos.html', uso=uso)
+    campus_id = _campus_actual()
+    uso = Counter(r["tipo"] for r in recursos.listar(campus_id=campus_id))
+    return render_template('tipos.html', uso=uso, tipos=tipos_recurso.listar(campus_id=campus_id))
 
 
 @app.route('/resource-types/new', methods=['GET', 'POST'])
+@admin_required
 def create_resource_type():
     if request.method == 'POST':
         try:
@@ -529,16 +532,18 @@ def create_resource_type():
 
 
 @app.route('/resource-types/edit/<id>', methods=['GET', 'POST'])
+@admin_required
 def edit_resource_type(id):
+    campus_id = _campus_actual()
     try:
-        tipo = tipos_recurso.obtener(id)
+        tipo = tipos_recurso.obtener(id, campus_id=campus_id)
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
         return redirect(url_for('resource_types'))
 
     if request.method == 'POST':
         try:
-            tipos_recurso.actualizar(id, _datos_tipo())
+            tipos_recurso.actualizar(id, _datos_tipo(), campus_id=campus_id)
             flash('Tipo de recurso actualizado', 'success')
             return redirect(url_for('resource_types'))
         except (NoEncontrado, ErrorValidacion) as e:
@@ -547,9 +552,10 @@ def edit_resource_type(id):
 
 
 @app.route('/resource-types/delete/<id>', methods=['POST'])
+@admin_required
 def delete_resource_type(id):
     try:
-        tipos_recurso.eliminar(id)
+        tipos_recurso.eliminar(id, campus_id=_campus_actual())
         flash('Tipo de recurso eliminado', 'info')
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')

@@ -38,7 +38,7 @@ def test_dashboard_acepta_fechas_iso_en_reservas(client, monkeypatch):
         "estado": "activa",
     }])
     monkeypatch.setattr(app_module.recursos, "listar", lambda tipo=None, campus_id=None: [])
-    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda: [])
+    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda campus_id=None: [])
 
     respuesta = client.get("/dashboard")
 

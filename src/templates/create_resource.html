@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <a href="{{ url_for('spaces') }}" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Volver a espacios</a>
-            <h3 class="mt-2">{% if resource %}Editar recurso{% else %}Agregar nuevo recurso{% endif %}</h3>
+            <h3 class="mt-2">{% if resource %}Editar recurso{% else %}Agregar nuevo espacio{% endif %}</h3>
             <p>
                 {% if resource %}Modificá los datos de {{ resource.nombre }}.{% else %}Registrá un nuevo espacio reservable del campus.{% endif %}
             </p>
@@ -14,7 +14,7 @@
     <div class="card form-card">
         <form method="post">
             <div class="mb-3">
-                <label class="form-label">Nombre del recurso</label>
+                <label class="form-label">Nombre del espacio</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-tag"></i></span>
                     <input type="text" name="nombre" class="form-control" required
@@ -24,7 +24,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de recurso</label>
+                <label class="form-label">Tipo de recurso (categoría)</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-grid"></i></span>
                     <select name="tipo" class="form-select">
@@ -33,7 +33,10 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-text"><a href="{{ url_for('resource_types') }}" class="text-decoration-none">Administrar tipos de recurso</a></div>
+                <div class="form-text">
+                    Por ejemplo, Biblioteca, Laboratorio o Cancha.
+                    <a href="{{ url_for('resource_types') }}" class="text-decoration-none">Administrar tipos de recurso</a>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -45,7 +48,7 @@
                     </option>
                     {% endfor %}
                 </select>
-                <div class="form-text">El recurso solo aparecerá en este campus.</div>
+                <div class="form-text">El espacio solo aparecerá en este campus.</div>
             </div>
 
             <div class="row">
@@ -73,7 +76,7 @@
                 <a href="{{ url_for('spaces') }}" class="btn btn-outline-secondary">Cancelar</a>
                 <button type="submit" class="btn btn-una flex-fill">
                     <i class="bi bi-check2 me-1"></i>
-                    {% if resource %}Guardar cambios{% else %}Guardar recurso{% endif %}
+                    {% if resource %}Guardar cambios{% else %}Guardar espacio{% endif %}
                 </button>
             </div>
         </form>
