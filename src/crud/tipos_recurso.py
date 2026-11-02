@@ -6,6 +6,7 @@ from datetime import datetime
 from src.core import cache
 from src.core.errores import ErrorValidacion, NoEncontrado
 from src.core.utils import oid, serializar
+from src.crud import campus
 from src.database import get_mongo_db
 
 # Opciones visuales que el formulario ofrece (iconos de Bootstrap Icons y paleta de colores)
@@ -40,11 +41,16 @@ def _slug(texto):
 def _sembrar():
     if _col().count_documents({}) == 0:
         ahora = datetime.now().isoformat()
-        _col().insert_many([{**t, "fecha_creacion": ahora} for t in POR_DEFECTO])
+        documentos = [
+            {**tipo, "campus_id": campus_id, "fecha_creacion": ahora}
+            for campus_id in (c["id"] for c in campus.listar())
+            for tipo in POR_DEFECTO
+        ]
+        _col().insert_many(documentos)
         cache.invalidar("tipos:*")
 
 
-def _validar(data, parcial=False):
+def _validar(data, parcial=False, campus_id=None):
     if not parcial and not (data.get("nombre") or "").strip():
         raise ErrorValidacion("El nombre es obligatorio")
     if "nombre" in data:
@@ -56,16 +62,22 @@ def _validar(data, parcial=False):
         raise ErrorValidacion("Icono invalido")
     if data.get("color") and data["color"] not in COLORES:
         raise ErrorValidacion("Color invalido")
+    campus_id = data.get("campus_id", campus_id)
+    if not campus.es_valido(campus_id):
+        raise ErrorValidacion("Campus invalido")
 
 
 def crear(data):
-    """CREATE. data: nombre, [icono], [color]. El codigo se genera a partir del nombre."""
+    """CREATE. El codigo es unico dentro del campus."""
+    data = dict(data)
+    data["campus_id"] = campus.normalizar(data.get("campus_id"))
     _validar(data)
     nombre = data["nombre"].strip()
     codigo = _slug(nombre)
     if not codigo:
         raise ErrorValidacion("El nombre debe incluir letras o numeros")
-    if _col().find_one({"codigo": codigo}):
+    campus_id = campus.normalizar(data.get("campus_id"))
+    if _col().find_one({"codigo": codigo, "campus_id": campus_id}):
         raise ErrorValidacion("Ya existe un tipo con ese nombre")
 
     res = _col().insert_one({
@@ -73,49 +85,76 @@ def crear(data):
         "nombre": nombre,
         "icono": data.get("icono") or ICONO_POR_DEFECTO,
         "color": data.get("color") or "red",
+        "campus_id": campus_id,
         "fecha_creacion": datetime.now().isoformat(),
     })
     cache.invalidar("tipos:*")
     return str(res.inserted_id)
 
 
-def listar():
+def listar(campus_id=None):
     """READ (lista) con cache. Siembra los tipos por defecto la primera vez."""
-    k = cache.key("tipos", "lista")
+    k = cache.key("tipos", "lista", campus_id or "todos")
     cached = cache.get(k)
     if cached is not None:
         return cached
 
     _sembrar()
-    lista = [serializar(t) for t in _col().find().sort("nombre", 1)]
+    filtro = {"campus_id": campus_id} if campus_id else {}
+    lista = [serializar(t) for t in _col().find(filtro).sort("nombre", 1)]
     cache.set(k, lista)
     return lista
 
 
-def codigos():
+def codigos(campus_id=None):
     """Set de codigos validos (lo usa crud.recursos para validar)."""
-    return {t["codigo"] for t in listar()}
+    return {t["codigo"] for t in listar(campus_id=campus_id)}
 
 
-def obtener(id_tipo):
+def obtener(id_tipo, campus_id=None):
     """READ (uno)."""
-    doc = _col().find_one({"_id": oid(id_tipo)})
+    filtro = {"_id": oid(id_tipo)}
+    if campus_id:
+        filtro["campus_id"] = campus_id
+    doc = _col().find_one(filtro)
     if not doc:
         raise NoEncontrado("Tipo de recurso no encontrado")
     return serializar(doc)
 
 
-def actualizar(id_tipo, data):
+def actualizar(id_tipo, data, campus_id=None):
     """UPDATE parcial. El codigo no cambia porque los recursos lo referencian."""
-    cambios = {k: v for k, v in data.items() if k in {"nombre", "icono", "color"} and v}
+    cambios = {k: v for k, v in data.items() if k in {"nombre", "icono", "color", "campus_id"} and v}
     if not cambios:
         raise ErrorValidacion("No hay campos para actualizar")
-    _validar(cambios, parcial=True)
+    tipo_actual = obtener(id_tipo, campus_id=campus_id)
+    destino = cambios.get("campus_id", tipo_actual.get("campus_id", campus.DEFAULT_CAMPUS_ID))
+    _validar(cambios, parcial=True, campus_id=destino)
+    origen = tipo_actual.get("campus_id", campus.DEFAULT_CAMPUS_ID)
+    if destino != origen:
+        usados = get_mongo_db()["recursos"].count_documents({
+            "tipo": tipo_actual["codigo"], "campus_id": origen,
+        })
+        if usados:
+            raise ErrorValidacion(
+                "No se puede cambiar de campus: hay espacios que usan este tipo"
+            )
     if "nombre" in cambios:
         cambios["nombre"] = cambios["nombre"].strip()
-        repetido = _col().find_one({"nombre": cambios["nombre"], "_id": {"$ne": oid(id_tipo)}})
+        repetido = _col().find_one({
+            "nombre": cambios["nombre"], "campus_id": destino,
+            "_id": {"$ne": oid(id_tipo)},
+        })
         if repetido:
             raise ErrorValidacion("Ya existe un tipo con ese nombre")
+
+    if "campus_id" in cambios or "nombre" in cambios:
+        repetido = _col().find_one({
+            "codigo": tipo_actual["codigo"], "campus_id": destino,
+            "_id": {"$ne": oid(id_tipo)},
+        })
+        if repetido:
+            raise ErrorValidacion("Ya existe un tipo con ese codigo en el campus")
 
     res = _col().update_one({"_id": oid(id_tipo)}, {"$set": cambios})
     if res.matched_count == 0:
@@ -124,15 +163,17 @@ def actualizar(id_tipo, data):
     return True
 
 
-def eliminar(id_tipo):
+def eliminar(id_tipo, campus_id=None):
     """DELETE. No permite borrar si hay recursos con ese tipo ni si es el unico que queda."""
-    tipo = obtener(id_tipo)
-    usados = get_mongo_db()["recursos"].count_documents({"tipo": tipo["codigo"]})
+    tipo = obtener(id_tipo, campus_id=campus_id)
+    usados = get_mongo_db()["recursos"].count_documents({
+        "tipo": tipo["codigo"], "campus_id": tipo["campus_id"],
+    })
     if usados:
         raise ErrorValidacion(f"No se puede eliminar: {usados} espacio(s) usan este tipo")
-    if _col().count_documents({}) <= 1:
+    if _col().count_documents({"campus_id": tipo["campus_id"]}) <= 1:
         raise ErrorValidacion("Debe existir al menos un tipo de recurso")
 
-    _col().delete_one({"_id": oid(id_tipo)})
+    _col().delete_one({"_id": oid(id_tipo), "campus_id": tipo["campus_id"]})
     cache.invalidar("tipos:*")
     return True

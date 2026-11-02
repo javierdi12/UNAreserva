@@ -18,12 +18,11 @@ from redis.exceptions import RedisError
 # --- main (API REST) ---
 from src import servicios
 from src.config import Config
-from src.models import Recurso
 from src.mailerlite import MailerLiteError, enviar_recuperacion
 from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
-from src.crud import recursos, reservas, tipos_recurso, usuarios
+from src.crud import campus, recursos, reservas, tipos_recurso, usuarios
 from src.core.errores import ErrorValidacion, NoEncontrado
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -43,9 +42,20 @@ def _usuario_actual():
     return session.get("usuario")
 
 
+def _campus_actual():
+    campus_id = campus.normalizar(session.get("campus_id"))
+    session["campus_id"] = campus_id
+    return campus_id
+
+
 @app.context_processor
 def contexto_autenticacion():
-    return {"usuario_actual": _usuario_actual()}
+    campus_id = _campus_actual()
+    return {
+        "usuario_actual": _usuario_actual(),
+        "campus_actual": campus_id,
+        "campuses": campus.listar(),
+    }
 
 
 def login_required(view):
@@ -227,7 +237,7 @@ def salud():
 @app.get("/api/recursos")
 @login_required
 def listar_recursos():
-    lista = servicios.listar_recursos(request.args.get("tipo"))
+    lista = recursos.listar(request.args.get("tipo"), campus_id=_campus_actual())
     return jsonify(_serializar(lista))
 
 
@@ -235,20 +245,19 @@ def listar_recursos():
 @admin_required
 def crear_recurso():
     d = _json_requerido("nombre", "tipo", "capacidad", "ubicacion")
-    recurso = Recurso(
-        nombre=d["nombre"],
-        tipo=d["tipo"],
-        capacidad=int(d["capacidad"]),
-        ubicacion=d["ubicacion"],
-        horario_apertura=d.get("horario_apertura", "07:00"),
-        horario_cierre=d.get("horario_cierre", "21:00"),
-    )
-    return jsonify(id=servicios.crear_recurso(recurso)), 201
+    return jsonify(id=recursos.crear({
+        "nombre": d["nombre"], "tipo": d["tipo"],
+        "capacidad": d["capacidad"], "ubicacion": d["ubicacion"],
+        "campus_id": campus.normalizar(d.get("campus_id") or _campus_actual()),
+        "horario": {"apertura": d.get("horario_apertura", "07:00"),
+                    "cierre": d.get("horario_cierre", "21:00")},
+    })), 201
 
 
 @app.get("/api/recursos/<id_recurso>/disponibilidad")
 @login_required
 def disponibilidad(id_recurso):
+    recursos.obtener(id_recurso, campus_id=_campus_actual())
     libres = servicios.consultar_disponibilidad(id_recurso, _fecha_param())
     return jsonify([{"inicio": a.isoformat(), "fin": b.isoformat()} for a, b in libres])
 
@@ -258,6 +267,10 @@ def disponibilidad(id_recurso):
 def reservar():
     d = _json_requerido("id_recurso", "fecha_inicio", "fecha_fin")
     d["id_usuario"] = _usuario_actual()["correo"]
+    # La capa de servicios mantiene la validación final del identificador.
+    # Solo verificamos campus aquí cuando el id tiene formato Mongo válido.
+    if ObjectId.is_valid(d["id_recurso"]):
+        recursos.obtener(d["id_recurso"], campus_id=_campus_actual())
     resultado = servicios.reservar(
         d["id_recurso"],
         d["id_usuario"],
@@ -272,7 +285,9 @@ def reservar():
 @app.get("/api/reservas/dia")
 @login_required
 def reservas_del_dia():
+    ids = {str(r["_id"]) for r in recursos.listar(campus_id=_campus_actual())}
     lista = servicios.reservas_del_dia(_fecha_param(), request.args.get("id_recurso"))
+    lista = [r for r in lista if str(r.get("id_recurso")) in ids]
     return jsonify(_serializar(lista))
 
 
@@ -319,12 +334,13 @@ def inject_globals():
     """Variables disponibles en todos los templates."""
     ahora = datetime.now().isoformat()
     usuario = _usuario_actual()
+    campus_id = _campus_actual()
     activas = []
     if usuario:
         activas = [r for r in reservas.listar(
-            id_usuario=usuario["correo"], estado="activa"
+            id_usuario=usuario["correo"], estado="activa", campus_id=campus_id
         ) if r["fecha_fin"] > ahora]
-    lista_tipos = tipos_recurso.listar()
+    lista_tipos = tipos_recurso.listar(campus_id=campus_id)
     return {
         "reservas_activas": len(activas),               # badge del menu lateral
         "tipos": lista_tipos,                           # selects y filtros
@@ -332,10 +348,16 @@ def inject_globals():
     }
 
 
+@app.post('/campus/select')
+def select_campus():
+    session["campus_id"] = campus.normalizar(request.form.get("campus_id"))
+    return redirect(campus.url_local(request.form.get("next")))
+
+
 # --- MAIN VIEWS ---
 @app.route('/')
 def home():
-    return render_template('home.html', total_espacios=len(recursos.listar()))
+    return render_template('home.html', total_espacios=len(recursos.listar(campus_id=_campus_actual())))
 
 
 # --- Utilidades para el dashboard ---
@@ -352,11 +374,11 @@ def _a_datetime(texto):
         return None
 
 
-def _ocupados_ahora():
+def _ocupados_ahora(campus_id=None):
     """IDs (str) de los recursos con una reserva activa en este momento."""
     ahora = datetime.now()
     ocupados = set()
-    for b in reservas.listar():
+    for b in reservas.listar(campus_id=campus_id or _campus_actual()):
         if b.get("estado") != "activa":
             continue
         ini, fin = _a_datetime(b.get("fecha_inicio")), _a_datetime(b.get("fecha_fin"))
@@ -368,8 +390,11 @@ def _ocupados_ahora():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    campus_id = _campus_actual()
     ahora = datetime.now()
-    mis_reservas = reservas.listar(id_usuario=_usuario_actual()["correo"])
+    mis_reservas = reservas.listar(
+        id_usuario=_usuario_actual()["correo"], campus_id=campus_id
+    )
 
     reservas_activas, horas_mes = [], 0.0
     for b in mis_reservas:
@@ -383,8 +408,8 @@ def dashboard():
         if ini.year == ahora.year and ini.month == ahora.month:
             horas_mes += (fin - ini).total_seconds() / 3600
 
-    todos = recursos.listar()
-    ocupados = _ocupados_ahora()
+    todos = recursos.listar(campus_id=campus_id)
+    ocupados = _ocupados_ahora(campus_id)
     disponibles = [r for r in todos if r["_id"] not in ocupados]
 
     return render_template(
@@ -402,12 +427,13 @@ def dashboard():
 @app.route('/spaces')
 @login_required
 def spaces():
+    campus_id = _campus_actual()
     tipo = request.args.get('tipo')  # filtro opcional: /spaces?tipo=laboratorio
     return render_template(
         'spaces.html',
-        resources=recursos.listar(tipo),
+        resources=recursos.listar(tipo, campus_id=campus_id),
         tipo_actual=tipo,
-        ocupados=_ocupados_ahora(),
+        ocupados=_ocupados_ahora(campus_id),
     )
 
 
@@ -422,6 +448,7 @@ def create_resource():
                 "tipo": request.form['tipo'],
                 "capacidad": request.form['capacidad'],
                 "ubicacion": request.form['ubicacion'],
+                "campus_id": campus.normalizar(request.form.get("campus_id") or _campus_actual()),
             })
             flash('Recurso creado exitosamente', 'success')
             return redirect(url_for('spaces'))
@@ -433,8 +460,9 @@ def create_resource():
 @app.route('/resources/edit/<id>', methods=['GET', 'POST'])
 @admin_required
 def edit_resource(id):
+    campus_id = _campus_actual()
     try:
-        resource = recursos.obtener(id)
+        resource = recursos.obtener(id, campus_id=campus_id)
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
         return redirect(url_for('spaces'))
@@ -446,6 +474,7 @@ def edit_resource(id):
                 "tipo": request.form['tipo'],
                 "capacidad": request.form['capacidad'],
                 "ubicacion": request.form['ubicacion'],
+                "campus_id": campus.normalizar(request.form.get("campus_id") or campus_id),
             })
             flash('Recurso actualizado', 'success')
             return redirect(url_for('spaces'))
@@ -458,7 +487,7 @@ def edit_resource(id):
 @admin_required
 def delete_resource(id):
     try:
-        recursos.eliminar(id)
+        recursos.eliminar(id, campus_id=_campus_actual())
         flash('Recurso eliminado', 'info')
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
@@ -471,6 +500,7 @@ def _datos_tipo():
         "nombre": request.form['nombre'],
         "icono": request.form.get('icono', ''),
         "color": request.form.get('color', ''),
+        "campus_id": campus.normalizar(request.form.get('campus_id') or _campus_actual()),
     }
 
 
@@ -483,11 +513,13 @@ def _form_tipo(tipo):
 
 @app.route('/resource-types')
 def resource_types():
-    uso = Counter(r["tipo"] for r in recursos.listar())  # cuantos espacios usa cada tipo
-    return render_template('tipos.html', uso=uso)
+    campus_id = _campus_actual()
+    uso = Counter(r["tipo"] for r in recursos.listar(campus_id=campus_id))
+    return render_template('tipos.html', uso=uso, tipos=tipos_recurso.listar(campus_id=campus_id))
 
 
 @app.route('/resource-types/new', methods=['GET', 'POST'])
+@admin_required
 def create_resource_type():
     if request.method == 'POST':
         try:
@@ -500,16 +532,18 @@ def create_resource_type():
 
 
 @app.route('/resource-types/edit/<id>', methods=['GET', 'POST'])
+@admin_required
 def edit_resource_type(id):
+    campus_id = _campus_actual()
     try:
-        tipo = tipos_recurso.obtener(id)
+        tipo = tipos_recurso.obtener(id, campus_id=campus_id)
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
         return redirect(url_for('resource_types'))
 
     if request.method == 'POST':
         try:
-            tipos_recurso.actualizar(id, _datos_tipo())
+            tipos_recurso.actualizar(id, _datos_tipo(), campus_id=campus_id)
             flash('Tipo de recurso actualizado', 'success')
             return redirect(url_for('resource_types'))
         except (NoEncontrado, ErrorValidacion) as e:
@@ -518,9 +552,10 @@ def edit_resource_type(id):
 
 
 @app.route('/resource-types/delete/<id>', methods=['POST'])
+@admin_required
 def delete_resource_type(id):
     try:
-        tipos_recurso.eliminar(id)
+        tipos_recurso.eliminar(id, campus_id=_campus_actual())
         flash('Tipo de recurso eliminado', 'info')
     except (NoEncontrado, ErrorValidacion) as e:
         flash(str(e), 'danger')
@@ -534,7 +569,8 @@ def create_booking(id_recurso):
     try:
         reservas.crear(
             id_recurso, _usuario_actual()["correo"],
-            request.form['fecha_inicio'], request.form['fecha_fin']
+            request.form['fecha_inicio'], request.form['fecha_fin'],
+            campus_id=_campus_actual(),
         )
         flash('Reserva creada exitosamente', 'success')
     except (NoEncontrado, ErrorValidacion) as e:
@@ -545,7 +581,8 @@ def create_booking(id_recurso):
 @app.route('/my-bookings')
 @login_required
 def my_bookings():
-    return render_template('bookings.html', bookings=reservas.listar(id_usuario=_usuario_actual()["correo"]))
+    return render_template('bookings.html', bookings=reservas.listar(
+        id_usuario=_usuario_actual()["correo"], campus_id=_campus_actual()))
 
 
 @app.route('/bookings/edit/<id>', methods=['POST'])
@@ -586,7 +623,7 @@ def calendar():
 @app.route('/api/bookings')
 def api_bookings():
     events = []
-    for b in reservas.listar():
+    for b in reservas.listar(campus_id=_campus_actual()):
         color = "#D32F2F" if b["estado"] == "activa" else "#9e9e9e"
         events.append({
             "id": b["_id"],

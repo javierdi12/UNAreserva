@@ -38,6 +38,18 @@
             </div>
 
             <div class="mb-3">
+                <label class="form-label">Campus</label>
+                <select name="campus_id" class="form-select" required>
+                    {% for c in campuses %}
+                    <option value="{{ c.id }}" {% if (tipo and tipo.campus_id == c.id) or (not tipo and c.id == campus_actual) %}selected{% endif %}>
+                        {{ c.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Este tipo solo estará disponible para los espacios de este campus.</div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Icono</label>
                 <div class="opt-grid">
                     {% for ic in iconos %}
