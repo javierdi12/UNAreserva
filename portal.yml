@@ -1,0 +1,20 @@
+# Completar los campos vacíos y revisar consentimiento antes de publicar.
+nombre: UNAreserva
+resumen: Sistema de reserva de espacios y recursos compartidos
+problema: La gestión manual de espacios puede causar conflictos de reserva
+usuarios: Estudiantes, docentes y administradores de espacios universitarios
+motores: [SQLite, Redis, MongoDB]
+lenguaje: Python
+licencia: MIT
+repositorio: https://github.com/javierdi12/UNAreserva
+demo_video: "https://youtu.be/0BtgDatEEfM"
+demo_url: "https://unareserva.grupo2.crnube.org/"
+captura: docs/img/page.png
+grupo: "G2"
+dia: "2026-11-12"
+periodo: II-2026
+autores_publicos:
+  - Daniel Briones
+  - Javier Díaz
+  - Dixon Gómez
+  - Maikel Jiménez

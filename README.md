@@ -194,16 +194,22 @@ está en [`docs/seguimientos/S3.md`](docs/seguimientos/S3.md) y
 
 Las mediciones reproducibles se ejecutan sobre una base de prueba:
 
-    python scripts/benchmark_s3.py --repeticiones 5
-    python scripts/benchmark_disponibilidad.py <id-recurso> --repeticiones 10
-    python scripts/load_test_slot.py <id-recurso> --solicitudes 50
-    python scripts/sync_pending.py
+    python -m scripts.benchmark_s3 --repeticiones 5
+    python -m scripts.benchmark_disponibilidad <id-recurso> --repeticiones 10
+    python -m scripts.load_test_slot <id-recurso> --solicitudes 50
+    python -m scripts.sync_pending
 
-El benchmark reporta mediana, mínimo y máximo de disponibilidad en milisegundos.
-La prueba de carga informa cuántas solicitudes fueron confirmadas, quedaron
-pendientes o entraron en conflicto; `doble_reserva_detectada` debe permanecer en
-`False`. La sincronización informa aceptación, rechazo, conflicto, pendientes y
-duración total.
+Los benchmarks reportan medianas en milisegundos. La prueba de carga informa
+estados y agrupa los errores como conflictos, por lo que no demuestra por sí
+sola que todos los casos hayan sido conflictos reales. La sincronización informa
+aceptación, rechazo, conflicto, pendientes y duración total.
+
+Las mediciones locales y sus límites están en [`docs/mediciones.md`](docs/mediciones.md).
+La sincronización del benchmark usa un adaptador simulado. La prueba de carga
+escribe solicitudes en la base configurada y agrupa algunos errores como
+conflictos; úsala solo en una base de prueba y revisa sus resultados.
+
+Para iniciar la interfaz web desde la raíz ejecuta `python -m src.app`.
 
 La arquitectura mantiene MongoDB como fuente de verdad, Redis como coordinación
 de corta duración y SQLite como cola local durable. Sus principales limitaciones
