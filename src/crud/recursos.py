@@ -96,7 +96,7 @@ def obtener(id_recurso, campus_id=None):
     doc = _col().find_one(filtro)
     if not doc:
         raise NoEncontrado("Recurso no encontrado")
-    serializar(doc)
+    doc = serializar(doc)
     cache.set(k, doc)
     return doc
 
