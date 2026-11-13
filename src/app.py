@@ -18,7 +18,7 @@ from redis.exceptions import RedisError
 # --- main (API REST) ---
 from src import servicios
 from src.config import Config
-from src.mailerlite import MailerLiteError, enviar_recuperacion
+from src.resend_mail import ResendError, enviar_recuperacion
 from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
@@ -135,7 +135,7 @@ def forgot_password():
             enlace = f"{Config.APP_BASE_URL.rstrip('/')}{url_for('reset_password', token=token)}"
             try:
                 enviar_recuperacion(Config, usuario["correo"], usuario["nombre"], enlace)
-            except MailerLiteError:
+            except ResendError:
                 app.logger.exception("No fue posible enviar recuperación")
         flash("Si el correo existe, recibirás instrucciones para recuperar la contraseña", "info")
         return redirect(url_for("forgot_password"))

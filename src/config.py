@@ -9,11 +9,6 @@ class Config:
     SQLITE_PATH = os.getenv("SQLITE_PATH", "./data/unareserva_local.db")
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev")
     APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5000")
-    MAILERLITE_API_TOKEN = os.getenv("MAILERLITE_API_TOKEN", "")
-    MAILERLITE_API_BASE_URL = os.getenv(
-        "MAILERLITE_API_BASE_URL", "https://connect.mailerlite.com/api"
-    )
-    MAILERLITE_RESET_GROUP_ID = os.getenv("MAILERLITE_RESET_GROUP_ID", "")
-    MAILERLITE_RESET_FIELD_KEY = os.getenv("MAILERLITE_RESET_FIELD_KEY", "reset_link")
-    MAILERLITE_API_VERSION = os.getenv("MAILERLITE_API_VERSION", "")
-    MAILERLITE_TIMEOUT = int(os.getenv("MAILERLITE_TIMEOUT", 10))
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+    RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "")
+    RESEND_TIMEOUT = int(os.getenv("RESEND_TIMEOUT", 10))
