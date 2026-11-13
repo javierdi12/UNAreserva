@@ -348,6 +348,20 @@ def inject_globals():
     }
 
 
+@app.route('/campus', methods=['GET', 'POST'])
+@admin_required
+def administrar_campus():
+    if request.method == 'POST':
+        try:
+            nuevo_id = campus.crear(request.form.get('nombre'))
+            session['campus_id'] = nuevo_id
+            flash('Campus creado exitosamente', 'success')
+            return redirect(url_for('administrar_campus'))
+        except ErrorValidacion as e:
+            flash(str(e), 'danger')
+    return render_template('campus.html')
+
+
 @app.post('/campus/select')
 def select_campus():
     session["campus_id"] = campus.normalizar(request.form.get("campus_id"))

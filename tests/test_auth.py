@@ -7,6 +7,8 @@ from src.resend_mail import ResendError, enviar_recuperacion
 
 @pytest.fixture
 def client(monkeypatch):
+    monkeypatch.setattr(app_module.campus, "listar", lambda: [dict(c) for c in app_module.campus.CAMPUS])
+    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda campus_id=None: [])
     app_module.app.config.update(TESTING=True, SECRET_KEY="test-secret")
     return app_module.app.test_client()
 
