@@ -2,11 +2,13 @@ import pytest
 from types import SimpleNamespace
 
 from src import app as app_module
-from src.mailerlite import enviar_recuperacion
+from src.resend_mail import ResendError, enviar_recuperacion
 
 
 @pytest.fixture
 def client(monkeypatch):
+    monkeypatch.setattr(app_module.campus, "listar", lambda: [dict(c) for c in app_module.campus.CAMPUS])
+    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda campus_id=None: [])
     app_module.app.config.update(TESTING=True, SECRET_KEY="test-secret")
     return app_module.app.test_client()
 
@@ -37,8 +39,8 @@ def test_dashboard_acepta_fechas_iso_en_reservas(client, monkeypatch):
         "fecha_fin": "2099-01-01T11:00:00",
         "estado": "activa",
     }])
-    monkeypatch.setattr(app_module.recursos, "listar", lambda tipo=None: [])
-    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda: [])
+    monkeypatch.setattr(app_module.recursos, "listar", lambda tipo=None, campus_id=None: [])
+    monkeypatch.setattr(app_module.tipos_recurso, "listar", lambda campus_id=None: [])
 
     respuesta = client.get("/dashboard")
 
@@ -130,43 +132,51 @@ def test_sidebar_no_muestra_logout_sin_sesion(client):
     assert "Cerrar sesión" not in contenido
 
 
-def test_mailerlite_envia_suscriptor_con_enlace(monkeypatch):
+def test_resend_envia_correo_con_enlace(monkeypatch):
+    import json
     capturado = {}
 
     class Respuesta:
-        def __init__(self, status, body):
-            self.status = status
-            self.body = body
+        status = 200
         def __enter__(self):
             return self
         def __exit__(self, *args):
             return False
-        def read(self):
-            return self.body
 
-    respuestas = [
-        Respuesta(201, b'{"data":{"id":"subscriber-1"}}'),
-        Respuesta(204, b""),
-        Respuesta(201, b"{}"),
-    ]
     def fake_urlopen(request, timeout):
-        capturado.setdefault("requests", []).append(request)
+        capturado["request"] = request
         capturado["timeout"] = timeout
-        return respuestas.pop(0)
+        return Respuesta()
 
-    monkeypatch.setattr("src.mailerlite.urlopen", fake_urlopen)
-    config = SimpleNamespace(
-        MAILERLITE_API_TOKEN="token",
-        MAILERLITE_RESET_GROUP_ID="grupo-1",
-        MAILERLITE_RESET_FIELD_KEY="reset_link",
-        MAILERLITE_API_VERSION="",
-        MAILERLITE_API_BASE_URL="https://connect.mailerlite.com/api",
-        MAILERLITE_TIMEOUT=10,
-    )
+    monkeypatch.setattr("src.resend_mail.urlopen", fake_urlopen)
+    config = SimpleNamespace(RESEND_API_KEY="token", RESEND_FROM_EMAIL="app@example.com", RESEND_TIMEOUT=10)
+    assert enviar_recuperacion(config, "ana@example.com", "Ana <script>", "https://app/reset?a=1&b=2")
+    request = capturado["request"]
+    payload = json.loads(request.data)
+    assert request.full_url == "https://api.resend.com/emails"
+    assert request.get_header("Authorization") == "Bearer token"
+    assert request.method == "POST"
+    assert payload["from"] == "app@example.com"
+    assert payload["to"] == ["ana@example.com"]
+    assert "Ana &lt;script&gt;" in payload["html"]
+    assert "https://app/reset?a=1&amp;b=2" in payload["html"]
+    assert capturado["timeout"] == 10
 
-    assert enviar_recuperacion(config, "ana@example.com", "Ana", "https://app/reset")
-    assert len(capturado["requests"]) == 3
-    assert capturado["requests"][0].get_header("Authorization") == "Bearer token"
-    assert b"https://app/reset" in capturado["requests"][0].data
-    assert capturado["requests"][1].method == "DELETE"
-    assert capturado["requests"][2].method == "POST"
+
+def test_resend_requiere_configuracion():
+    config = SimpleNamespace(RESEND_API_KEY="", RESEND_FROM_EMAIL="", RESEND_TIMEOUT=10)
+    with pytest.raises(ResendError):
+        enviar_recuperacion(config, "ana@example.com", "Ana", "https://app/reset")
+
+
+def test_recuperacion_oculta_error_de_envio(client, monkeypatch):
+    monkeypatch.setattr(app_module.usuarios, "crear_token_recuperacion", lambda correo: (
+        "token", {"correo": correo, "nombre": "Ana"}
+    ))
+    def fallar(*args):
+        raise ResendError("Error de envío")
+    monkeypatch.setattr(app_module, "enviar_recuperacion", fallar)
+    respuesta = client.post("/forgot-password", data={"correo": "ana@example.com"})
+    assert respuesta.status_code == 302
+    with client.session_transaction() as sesion:
+        assert any("Si el correo existe" in mensaje for _, mensaje in sesion["_flashes"])

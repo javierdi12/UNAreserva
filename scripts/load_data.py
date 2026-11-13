@@ -32,6 +32,8 @@ def _argumentos():
     )
     parser.add_argument("--resources", type=int, default=50)
     parser.add_argument("--reservations", type=int, default=100)
+    parser.add_argument("--campus-id", default="omar_dengo",
+                        choices=("omar_dengo", "benjamin_nunez"))
     return parser.parse_args()
 
 
@@ -40,7 +42,7 @@ def _validar_cantidad(nombre, cantidad):
         raise ValueError(f"--{nombre} debe ser mayor o igual que 0")
 
 
-def _crear_recursos(cantidad, rng, seed):
+def _crear_recursos(cantidad, rng, seed, campus_id):
     recursos = []
     for i in range(cantidad):
         recursos.append({
@@ -49,6 +51,7 @@ def _crear_recursos(cantidad, rng, seed):
             "tipo": rng.choice(RESOURCE_TYPES),
             "capacidad": rng.randint(2, 30),
             "ubicacion": f"Edificio {rng.choice(BUILDINGS)}, piso {rng.randint(1, 3)}",
+            "campus_id": campus_id,
             "horario": {"apertura": "07:00", "cierre": "21:00"},
         })
     return recursos
@@ -79,7 +82,7 @@ def _crear_reservas(recursos, cantidad, rng, base_date, seed):
 
 
 def generate_test_data(seed=DEFAULT_SEED, resources=50, reservations=100,
-                       base_date=DEFAULT_BASE_DATE):
+                       base_date=DEFAULT_BASE_DATE, campus_id="omar_dengo"):
     """Reemplaza las colecciones con datos sintéticos deterministas."""
     _validar_cantidad("resources", resources)
     _validar_cantidad("reservations", reservations)
@@ -93,7 +96,7 @@ def generate_test_data(seed=DEFAULT_SEED, resources=50, reservations=100,
     resources_collection.delete_many({})
     bookings_collection.delete_many({})
 
-    recursos = _crear_recursos(resources, rng, seed)
+    recursos = _crear_recursos(resources, rng, seed, campus_id)
     if recursos:
         resources_collection.insert_many(recursos)
 
@@ -115,4 +118,5 @@ if __name__ == "__main__":
         resources=args.resources,
         reservations=args.reservations,
         base_date=args.base_date,
+        campus_id=args.campus_id,
     )

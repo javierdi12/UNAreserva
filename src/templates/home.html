@@ -110,7 +110,7 @@
 
         <div class="board" aria-label="Ejemplo de disponibilidad del día">
             <div class="board-head">
-                <div>Disponibilidad de hoy<br><small>Campus Omar Dengo</small></div>
+                <div>Disponibilidad de hoy<br><small>{{ (campuses | selectattr("id", "equalto", campus_actual) | first).nombre }}</small></div>
                 <div class="legend">
                     <span><i style="background: var(--h-free-bg); border: 1px solid var(--h-free);"></i>Libre</span>
                     <span><i style="background: var(--h-busy);"></i>Reservado</span>

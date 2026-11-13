@@ -150,16 +150,14 @@ Antes de ejecutar el segundo comando, configura `ADMIN_EMAIL`, `ADMIN_PASSWORD` 
 opcionalmente `ADMIN_NAME` en el entorno. Nunca guardes esas variables en Git ni
 las imprimas en logs.
 
-La recuperación de contraseña usa MailerLite. Configura `MAILERLITE_API_TOKEN`,
-`MAILERLITE_RESET_GROUP_ID`, `MAILERLITE_RESET_FIELD_KEY` y `APP_BASE_URL`.
-En MailerLite crea el campo personalizado indicado por
-`MAILERLITE_RESET_FIELD_KEY` y una automatización cuyo disparador sea la entrada
-al grupo indicado por `MAILERLITE_RESET_GROUP_ID`. El correo de esa automatización
-debe incluir el campo personalizado como enlace de recuperación.
+La recuperación de contraseña envía correos directamente con Resend. Configura
+`RESEND_API_KEY`, `RESEND_FROM_EMAIL` y `APP_BASE_URL` en el entorno. El remitente
+debe usar un dominio verificado en Resend; `APP_BASE_URL` debe ser la URL pública
+de la aplicación para que el enlace funcione. Opcionalmente, `RESEND_TIMEOUT`
+controla el tiempo máximo de espera en segundos (10 por defecto).
 
-El token de API se genera desde Integrations > MailerLite API. No lo guardes en
-Git ni lo imprimas en logs. La API de MailerLite usa el endpoint base
-`https://connect.mailerlite.com/api` y autenticación Bearer.
+Genera la clave en Resend y mantenla fuera de Git. Para pruebas, Resend permite
+usar `onboarding@resend.dev` con las restricciones de su dominio de prueba.
 
 ## Equipo y estructura
 

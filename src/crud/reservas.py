@@ -41,11 +41,21 @@ def _hay_traslape(id_recurso, inicio_iso, fin_iso, excluir_id=None):
     return _col().count_documents(filtro) > 0
 
 
-def crear(id_recurso, id_usuario, fecha_inicio, fecha_fin):
+def _normalizar_fechas(reserva):
+    for campo in ("fecha_inicio", "fecha_fin"):
+        valor = reserva.get(campo)
+        if isinstance(valor, datetime):
+            reserva[campo] = valor.isoformat()
+        elif isinstance(valor, str) and len(valor) > 10 and valor[10] == " ":
+            reserva[campo] = valor[:10] + "T" + valor[11:]
+    return reserva
+
+
+def crear(id_recurso, id_usuario, fecha_inicio, fecha_fin, campus_id=None):
     """CREATE. Fechas en formato ISO 8601 (str)."""
     if not id_usuario:
         raise ErrorValidacion("Falta el usuario")
-    recurso = recursos.obtener(id_recurso)  # lanza NoEncontrado si no existe
+    recurso = recursos.obtener(id_recurso, campus_id=campus_id)  # valida campus
     inicio = parse_fecha(fecha_inicio, "fecha_inicio")
     fin = parse_fecha(fecha_fin, "fecha_fin")
     _validar_horario(recurso, inicio, fin)
@@ -69,7 +79,7 @@ def crear(id_recurso, id_usuario, fecha_inicio, fecha_fin):
     return str(res.inserted_id)
 
 
-def listar(id_usuario=None, id_recurso=None, estado=None, limite=0):
+def listar(id_usuario=None, id_recurso=None, estado=None, limite=0, campus_id=None):
     """READ (lista) con cache. Agrega `nombre_recurso` a cada reserva."""
     filtro = {}
     if id_usuario:
@@ -78,14 +88,18 @@ def listar(id_usuario=None, id_recurso=None, estado=None, limite=0):
         filtro["id_recurso"] = id_recurso
     if estado:
         filtro["estado"] = estado
+    if campus_id:
+        ids = [str(r["_id"]) for r in recursos.listar(campus_id=campus_id)]
+        filtro["id_recurso"] = {"$in": ids}
 
-    k = cache.key("reservas", "lista", json.dumps(filtro, sort_keys=True), str(limite))
+    k = cache.key("reservas", "lista", json.dumps(filtro, sort_keys=True), str(limite), campus_id or "todos")
     cached = cache.get(k)
     if cached is not None:
-        return cached
+        return [_normalizar_fechas(r) for r in cached]
 
     lista = [serializar(r) for r in _col().find(filtro).sort("fecha_inicio", 1).limit(limite)]
     for r in lista:
+        _normalizar_fechas(r)
         try:
             r["nombre_recurso"] = recursos.obtener(r["id_recurso"])["nombre"]
         except (NoEncontrado, ErrorValidacion):

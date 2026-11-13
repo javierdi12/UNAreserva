@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3>Campus</h3>
+        <p>Administrá los campus disponibles para reservar espacios.</p>
+    </div>
+</div>
+<div class="card form-card mb-4">
+    <h5>Crear campus</h5>
+    <form method="post">
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre del campus</label>
+            <input id="nombre" name="nombre" class="form-control" type="text" maxlength="80" required
+                   value="{{ request.form.get('nombre', '') }}" placeholder="Ej: Campus Liberia">
+        </div>
+        <button type="submit" class="btn btn-una"><i class="bi bi-plus-lg me-1"></i> Crear campus</button>
+    </form>
+</div>
+<div class="card overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Nombre</th><th>Código</th></tr></thead>
+            <tbody>
+                {% for c in campuses %}
+                <tr><td>{{ c.nombre }}</td><td><code>{{ c.id }}</code></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

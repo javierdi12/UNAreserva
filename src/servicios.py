@@ -20,6 +20,7 @@ from pymongo.errors import PyMongoError
 from redis.exceptions import RedisError
 
 from src.config import Config
+from src.core import cache
 from src.models import Recurso, Reserva
 
 LOCK_TTL = 10  # segundos que dura el bloqueo en Redis
@@ -187,7 +188,9 @@ def _intentar_reserva(id_recurso, id_usuario, inicio, fin):
             raise ConflictoReserva("Ya existe una reserva en ese horario")
 
         reserva = Reserva(str(id_recurso), id_usuario, inicio, fin)
-        return str(db.reservas.insert_one(reserva.to_dict()).inserted_id)
+        id_reserva = str(db.reservas.insert_one(reserva.to_dict()).inserted_id)
+        cache.invalidar("reservas:*")
+        return id_reserva
     finally:
         try:
             if r.get(clave) == token:
@@ -246,7 +249,10 @@ def cancelar_reserva(id_reserva):
         {"_id": _oid(id_reserva), "estado": "activa"},
         {"$set": {"estado": "cancelada"}},
     )
-    return res.modified_count == 1
+    if res.modified_count == 1:
+        cache.invalidar("reservas:*")
+        return True
+    return False
 
 
 def reservas_del_dia(dia: date, id_recurso=None):

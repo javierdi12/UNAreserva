@@ -24,10 +24,14 @@
         </div>
 
         <div class="mb-2 px-1">
-            <select class="form-select form-select-sm text-muted">
-                <option>Campus Omar Dengo</option>
-                <option>Campus Benjamín Núñez</option>
-            </select>
+            <form method="post" action="{{ url_for('select_campus') }}">
+                <select id="campusSelector" name="campus_id" class="form-select form-select-sm text-muted"
+                    onchange="this.form.submit()" aria-label="Seleccionar campus">
+                {% for c in campuses %}
+                <option value="{{ c.id }}" {% if campus_actual == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+                {% endfor %}
+                </select>
+            </form>
         </div>
 
         <div class="nav-section">Menú principal</div>
@@ -55,8 +59,15 @@
         {% if usuario_actual and usuario_actual.rol == 'administrador' %}
         <div class="nav-section">Administración</div>
 
+        <a href="{{ url_for('administrar_campus') }}" class="nav-item {% if request.path == '/campus' %}active{% endif %}">
+            <i class="bi bi-building"></i> Campus
+        </a>
         <a href="{{ url_for('users') }}" class="nav-item {% if request.path.startswith('/users') %}active{% endif %}">
             <i class="bi bi-people"></i> Usuarios
+        </a>
+        <a href="{{ url_for('resource_types') }}"
+            class="nav-item {% if request.path.startswith('/resource-types') %}active{% endif %}">
+            <i class="bi bi-tags"></i> Tipos de recurso
         </a>
         {% endif %}
         {% if usuario_actual %}
