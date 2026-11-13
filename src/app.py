@@ -19,7 +19,7 @@ from redis.exceptions import RedisError
 # --- main (API REST) ---
 from src import servicios
 from src.config import Config
-from src.mailerlite import MailerLiteError, enviar_recuperacion
+from src.resend_mail import ResendError, enviar_recuperacion
 from src.servicios import ConflictoReserva, RecursoOcupado
 
 # --- developer (vistas web) ---
@@ -136,7 +136,7 @@ def forgot_password():
             enlace = f"{Config.APP_BASE_URL.rstrip('/')}{url_for('reset_password', token=token)}"
             try:
                 enviar_recuperacion(Config, usuario["correo"], usuario["nombre"], enlace)
-            except MailerLiteError:
+            except ResendError:
                 app.logger.exception("No fue posible enviar recuperación")
         flash("Si el correo existe, recibirás instrucciones para recuperar la contraseña", "info")
         return redirect(url_for("forgot_password"))
@@ -352,6 +352,20 @@ def inject_globals():
         "tipos": lista_tipos,                           # selects y filtros
         "tipos_map": {t["codigo"]: t for t in lista_tipos},  # icono/color/nombre por codigo
     }
+
+
+@app.route('/campus', methods=['GET', 'POST'])
+@admin_required
+def administrar_campus():
+    if request.method == 'POST':
+        try:
+            nuevo_id = campus.crear(request.form.get('nombre'))
+            session['campus_id'] = nuevo_id
+            flash('Campus creado exitosamente', 'success')
+            return redirect(url_for('administrar_campus'))
+        except ErrorValidacion as e:
+            flash(str(e), 'danger')
+    return render_template('campus.html')
 
 
 @app.post('/campus/select')

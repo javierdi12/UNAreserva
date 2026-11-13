@@ -39,15 +39,18 @@ def _slug(texto):
 
 
 def _sembrar():
-    if _col().count_documents({}) == 0:
-        ahora = datetime.now().isoformat()
-        documentos = [
-            {**tipo, "campus_id": campus_id, "fecha_creacion": ahora}
-            for campus_id in (c["id"] for c in campus.listar())
-            for tipo in POR_DEFECTO
-        ]
-        _col().insert_many(documentos)
-        cache.invalidar("tipos:*")
+    # Inicializa cada campus una sola vez, incluso si se agregó después del arranque.
+    for c in campus.listar():
+        campus_id = c["id"]
+        if _col().count_documents({"campus_id": campus_id}) == 0:
+            ahora = datetime.now().isoformat()
+            for tipo in POR_DEFECTO:
+                _col().update_one(
+                    {"campus_id": campus_id, "codigo": tipo["codigo"]},
+                    {"$setOnInsert": {**tipo, "campus_id": campus_id, "fecha_creacion": ahora}},
+                    upsert=True,
+                )
+            cache.invalidar("tipos:*")
 
 
 def _validar(data, parcial=False, campus_id=None):
