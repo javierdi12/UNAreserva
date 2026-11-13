@@ -7,6 +7,7 @@ Ejecutar desde la raiz del proyecto:
 from collections import Counter
 from datetime import date, datetime
 from functools import wraps
+from time import perf_counter
 
 from bson import ObjectId
 from flask import (
@@ -255,11 +256,15 @@ def crear_recurso():
 
 
 @app.get("/api/recursos/<id_recurso>/disponibilidad")
+@app.get("/api/disponibilidad/<id_recurso>")
 @login_required
 def disponibilidad(id_recurso):
+    inicio = perf_counter()
     recursos.obtener(id_recurso, campus_id=_campus_actual())
     libres = servicios.consultar_disponibilidad(id_recurso, _fecha_param())
-    return jsonify([{"inicio": a.isoformat(), "fin": b.isoformat()} for a, b in libres])
+    respuesta = jsonify([{"inicio": a.isoformat(), "fin": b.isoformat()} for a, b in libres])
+    respuesta.headers["X-Availability-Duration-Ms"] = f"{(perf_counter() - inicio) * 1000:.3f}"
+    return respuesta
 
 
 @app.post("/api/reservas")
@@ -283,6 +288,7 @@ def reservar():
 
 
 @app.get("/api/reservas/dia")
+@app.get("/api/reservas/hoy")
 @login_required
 def reservas_del_dia():
     ids = {str(r["_id"]) for r in recursos.listar(campus_id=_campus_actual())}
@@ -306,8 +312,8 @@ def cancelar(id_reserva):
 @app.post("/api/sincronizar")
 @admin_required
 def sincronizar():
-    confirmadas, rechazadas = servicios.sincronizar_pendientes()
-    return jsonify(confirmadas=confirmadas, rechazadas=rechazadas)
+    resumen = servicios.sincronizar_pendientes(detallado=True)
+    return jsonify(**resumen)
 
 
 # =====================================================================
