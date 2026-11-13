@@ -41,6 +41,16 @@ def _hay_traslape(id_recurso, inicio_iso, fin_iso, excluir_id=None):
     return _col().count_documents(filtro) > 0
 
 
+def _normalizar_fechas(reserva):
+    for campo in ("fecha_inicio", "fecha_fin"):
+        valor = reserva.get(campo)
+        if isinstance(valor, datetime):
+            reserva[campo] = valor.isoformat()
+        elif isinstance(valor, str) and len(valor) > 10 and valor[10] == " ":
+            reserva[campo] = valor[:10] + "T" + valor[11:]
+    return reserva
+
+
 def crear(id_recurso, id_usuario, fecha_inicio, fecha_fin, campus_id=None):
     """CREATE. Fechas en formato ISO 8601 (str)."""
     if not id_usuario:
@@ -85,10 +95,11 @@ def listar(id_usuario=None, id_recurso=None, estado=None, limite=0, campus_id=No
     k = cache.key("reservas", "lista", json.dumps(filtro, sort_keys=True), str(limite), campus_id or "todos")
     cached = cache.get(k)
     if cached is not None:
-        return cached
+        return [_normalizar_fechas(r) for r in cached]
 
     lista = [serializar(r) for r in _col().find(filtro).sort("fecha_inicio", 1).limit(limite)]
     for r in lista:
+        _normalizar_fechas(r)
         try:
             r["nombre_recurso"] = recursos.obtener(r["id_recurso"])["nombre"]
         except (NoEncontrado, ErrorValidacion):

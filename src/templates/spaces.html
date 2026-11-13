@@ -54,6 +54,7 @@
                         <i class="bi bi-calendar-plus me-1"></i> Reservar espacio
                     </button>
 
+                    {% if usuario_actual and usuario_actual.rol == 'administrador' %}
                     <div class="d-flex gap-2">
                         <a href="{{ url_for('edit_resource', id=resource._id) }}" class="btn btn-outline-secondary btn-sm flex-fill">
                             <i class="bi bi-pencil"></i> Editar
@@ -67,6 +68,7 @@
                             </button>
                         </form>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
