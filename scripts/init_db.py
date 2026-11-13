@@ -19,6 +19,18 @@ def init_mongo():
     db["usuarios"].create_index("correo", unique=True)
     db["password_reset_tokens"].create_index("token_hash", unique=True)
     db["password_reset_tokens"].create_index("expira_en", expireAfterSeconds=0)
+    db["reservas"].create_index([
+        ("id_recurso", 1), ("estado", 1), ("fecha_inicio", 1), ("fecha_fin", 1)
+    ], name="disponibilidad_reserva_idx")
+    db["reservas"].create_index(
+        [("id_recurso", 1), ("fecha_inicio", 1), ("fecha_fin", 1)],
+        name="reserva_recurso_franja_unica",
+        unique=True,
+        partialFilterExpression={"estado": "activa"},
+    )
+    db["reservas"].create_index(
+        [("id_usuario", 1), ("fecha_inicio", 1)], name="reservas_usuario_fecha_idx"
+    )
     print("[OK] Colecciones MongoDB listas: recursos, reservas, usuarios y tokens")
 def init_sqlite():
     path = os.getenv("SQLITE_PATH", "./data/unareserva_local.db")

@@ -68,7 +68,7 @@ def obtener(id_recurso):
     doc = _col().find_one({"_id": oid(id_recurso)})
     if not doc:
         raise NoEncontrado("Recurso no encontrado")
-    serializar(doc)
+    doc = serializar(doc)
     cache.set(k, doc)
     return doc
 
